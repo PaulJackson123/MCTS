@@ -7,13 +7,13 @@ public class TTFEMove implements Move {
 	int y;
 	Direction dir = Direction.Up;
 	int val;
-	
+
 	public TTFEMove(int _x, int _y, int _val) {
 		x = _x;
 		y = _y;
 		val = _val;
 	}
-	
+
 	public TTFEMove(Direction d) {
 		dir = d;
 	}

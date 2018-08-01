@@ -8,8 +8,8 @@ import main.Board;
  * is to implement a function that takes a game
  * board, applies some random available move from
  * the current state and returns it.
- * @author KGS
  *
+ * @author KGS
  */
 public interface PlayoutSelection {
 	public void Process(Board board);

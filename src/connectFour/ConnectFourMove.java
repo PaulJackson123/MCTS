@@ -11,12 +11,12 @@ import main.Move;
  */
 public class ConnectFourMove implements Move {
 	int row;
-	
-	public ConnectFourMove(int row){
+
+	public ConnectFourMove(int row) {
 		this.row = row;
 	}
-	
-	public String toString(){
+
+	public String toString() {
 		StringBuilder strb = new StringBuilder();
 		strb.append(row);
 		return strb.toString();

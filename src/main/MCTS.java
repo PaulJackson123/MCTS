@@ -1,8 +1,15 @@
 package main;
 
+import main.support.HeuristicFunction;
+import main.support.PlayoutSelection;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -10,9 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 
-import main.support.HeuristicFunction;
-import main.support.PlayoutSelection;
-
+// TODO: Detect end of game, change choice to best score differential
 public class MCTS {
 	private Random random;
 	private boolean rootParallelisation;
@@ -20,6 +25,8 @@ public class MCTS {
 	private double explorationConstant = Math.sqrt(2.0);
 	private double pessimisticBias = 0.0;
 	private double optimisticBias = 0.0;
+
+	private double heuristicWeight = 1.0;
 
 	private boolean scoreBounds;
 	private boolean trackTime; // display thinking time used
@@ -32,43 +39,77 @@ public class MCTS {
 	private ExecutorService threadpool;
 	private ArrayList<FutureTask<Node>> futures;
 
+	PrintWriter writer;
+
+	private static final Comparator<Node> NODE_PRINT_COMPARATOR = (o1, o2) -> o1.games == o2.games
+			? Double.compare(o1.score[o1.parent.player], o2.score[o2.parent.player])
+			: Double.compare(o1.games, o2.games);
+
 	public MCTS() {
 		random = new Random();
+		try {
+			writer = new PrintWriter(new File("nodes"));
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public Move selectRandom(Board startingBoard) {
+		Node rootNode = new Node(startingBoard);
+		if (rootNode.unvisitedChildren == null) {
+			rootNode.expandNode(startingBoard);
+		}
+		Node node = rootNode.unvisitedChildren.get(random.nextInt(rootNode.unvisitedChildren.size()));
+		return node.move;
 	}
 
 	/**
 	 * Run a UCT-MCTS simulation for a number of iterations.
-	 * 
-	 * @param startingBoard
-	 *            starting board
-	 * @param runs
-	 *            how many iterations to think
-	 * @param bounds
-	 *            enable or disable score bounds.
-	 * @return
+	 *
+	 * @param startingBoard starting board
+	 * @param runs          how many iterations to think
+	 * @param maxTime
+	 * @param bounds        enable or disable score bounds.  @return best move found
 	 */
-	public Move runMCTS_UCT(Board startingBoard, int runs, boolean bounds) {
+	public Move runMCTS_UCT(Board startingBoard, int runs, long maxTime, boolean bounds) {
 		scoreBounds = bounds;
 		Node rootNode = new Node(startingBoard);
 		boolean pmode = rootParallelisation;
 		Move bestMoveFound = null;
-		
-		long startTime = System.nanoTime();
 
+		long startTime = System.currentTimeMillis();
+		if (this.trackTime) {
+			System.out.println("Making choice for player: " + rootNode.player);
+		}
+
+		// No need to make multiple runs for moves that will be selected randomly
+		int runs1 = startingBoard.getCurrentPlayer() < 0 ? 1 : runs;
 		if (!pmode) {
-			for (int i = 0; i < runs; i++) {
-				select(startingBoard.duplicate(), rootNode);
+			select(startingBoard.duplicate(), rootNode);
+			if (!rootNode.unvisitedChildren.isEmpty() || rootNode.children.size() != 1) {
+				for (int i = 1; runs1 > 0 && i < runs1 || runs1 == 0 && System.currentTimeMillis() - startTime < maxTime; i++) {
+					select(startingBoard.duplicate(), rootNode);
+				}
 			}
+			Node bestNodeFound = robustChild(rootNode);
+			bestMoveFound = bestNodeFound.move;
+			writer.print("Player " + startingBoard.getCurrentPlayer() + " chooses " + bestMoveFound);
+			while (!bestNodeFound.children.isEmpty()) {
+				bestNodeFound = robustChild(bestNodeFound);
+				writer.println("=>");
+				writer.print("\tPlayer " + bestNodeFound.parent.player + " chooses " + bestNodeFound.move);
+			}
+			writer.println();
+			writer.println("Choices\n" + getChildrenPrintString(rootNode.children));
+			writer.println("Children" + getChildrenPrintString(bestNodeFound.children));
+			writer.println();
+			writer.flush();
 		} else {
 
 			for (int i = 0; i < threads; i++)
-				futures.add((FutureTask<Node>) threadpool.submit(new MCTSTask(startingBoard, runs)));
+				futures.add((FutureTask<Node>) threadpool.submit(new MCTSTask(startingBoard, runs1)));
 
 			try {
-
-				while (!checkDone(futures))
-					Thread.sleep(10);
-
 				ArrayList<Node> rootNodes = new ArrayList<Node>();
 
 				// Collect all computed root nodes
@@ -76,14 +117,14 @@ public class MCTS {
 					rootNodes.add(f.get());
 
 				ArrayList<Move> moves = new ArrayList<Move>();
-								
-				for (Node n : rootNodes){
+
+				for (Node n : rootNodes) {
 					Node c = robustChild(n); // Select robust child
 					moves.add(c.move);
 				}
-				
+
 				bestMoveFound = vote(moves);
-								
+
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
@@ -91,26 +132,32 @@ public class MCTS {
 			futures.clear();
 		}
 
-		long endTime = System.nanoTime();
+		long endTime = System.currentTimeMillis();
 
 		if (this.trackTime) {
-			System.out.println("Making choice for player: " + rootNode.player);
-			System.out.println("Thinking time per move in milliseconds: " + (endTime - startTime) / 1000000);
+			System.out.println("Selected move: " + bestMoveFound);
+			System.out.println("Thinking time per move in milliseconds: " + (endTime - startTime));
 		}
 
 		return bestMoveFound;
 	}
 
-	private Move vote(ArrayList<Move> moves){
+	private String getChildrenPrintString(ArrayList<Node> children) {
+		ArrayList<Node> nodes = new ArrayList<>(children);
+		nodes.sort(NODE_PRINT_COMPARATOR.reversed());
+		return nodes.toString().replace(", AzulPlayerMove", ",\nAzulPlayerMove");
+	}
+
+	private Move vote(ArrayList<Move> moves) {
 		Collections.sort(moves);
 		ArrayList<Integer> counts = new ArrayList<Integer>();
 		ArrayList<Move> cmoves = new ArrayList<Move>();
-		
+
 		Move omove = moves.get(0);
 		int count = 0;
-		for (Move m : moves){
-			if (omove.compareTo(m) == 0){
-				count ++;
+		for (Move m : moves) {
+			if (omove.compareTo(m) == 0) {
+				count++;
 			} else {
 				cmoves.add(omove);
 				counts.add(count);
@@ -118,11 +165,11 @@ public class MCTS {
 				count = 1;
 			}
 		}
-		
+
 		int mostvotes = 0;
 		ArrayList<Move> mostVotedMove = new ArrayList<Move>();
-		for (int i = 0; i < counts.size(); i++){
-			if (mostvotes < counts.get(i)){
+		for (int i = 0; i < counts.size(); i++) {
+			if (mostvotes < counts.get(i)) {
 				mostvotes = counts.get(i);
 				mostVotedMove.clear();
 				mostVotedMove.add(cmoves.get(i));
@@ -133,17 +180,15 @@ public class MCTS {
 
 		return mostVotedMove.get(random.nextInt(mostVotedMove.size()));
 	}
-	
+
 	/**
 	 * This represents the select stage, or default policy, of the algorithm.
 	 * Traverse down to the bottom of the tree using the selection strategy
 	 * until you find an unexpanded child node. Expand it. Run a random playout.
 	 * Backpropagate results of the playout.
-	 * 
-	 * @param node
-	 *            Node from which to start selection
-	 * @param brd
-	 *            Board state to work from.
+	 *
+	 * @param currentBoard Board state to work from.
+	 * @param currentNode  Node from which to start selection
 	 */
 	private void select(Board currentBoard, Node currentNode) {
 		// Begin tree policy. Traverse down the tree and expand. Return
@@ -163,7 +208,7 @@ public class MCTS {
 	}
 
 	/**
-	 *  
+	 *
 	 */
 	private BoardNodePair treePolicy(Board b, Node node) {
 		while (!b.gameOver()) {
@@ -178,9 +223,7 @@ public class MCTS {
 					b.makeMove(temp.move);
 					return new BoardNodePair(b, temp);
 				} else {
-					ArrayList<Node> bestNodes = findChildren(node, b, optimisticBias, pessimisticBias,
-							explorationConstant);
-
+					ArrayList<Node> bestNodes = findChildren(node, b, optimisticBias, pessimisticBias);
 					if (bestNodes.size() == 0) {
 						// We have failed to find a single child to visit
 						// from a non-terminal node, so we conclude that
@@ -215,9 +258,8 @@ public class MCTS {
 				// ignore selection heuristics and pick one node at
 				// random based on the weight vector.
 
-				Node selectedNode = node.children.get(node.randomSelect(b));
-				node = selectedNode;
-				b.makeMove(selectedNode.move);
+				node = node.children.get(node.randomSelect(b));
+				b.makeMove(node.move);
 			}
 		}
 
@@ -227,24 +269,23 @@ public class MCTS {
 	/**
 	 * This is the final step of the algorithm, to pick the best move to
 	 * actually make.
-	 * 
-	 * @param n
-	 *            this is the node whose children are considered
+	 *
+	 * @param n this is the node whose children are considered
 	 * @return the best Move the algorithm can find
 	 */
 	private Move finalMoveSelection(Node n) {
 		Node r = null;
 
 		switch (finalSelectionPolicy) {
-		case maxChild:
-			r = maxChild(n);
-			break;
-		case robustChild:
-			r = robustChild(n);
-			break;
-		default:
-			r = robustChild(n);
-			break;
+			case maxChild:
+				r = maxChild(n);
+				break;
+			case robustChild:
+				r = robustChild(n);
+				break;
+			default:
+				r = robustChild(n);
+				break;
 		}
 
 		return r.move;
@@ -252,7 +293,7 @@ public class MCTS {
 
 	/**
 	 * Select the most visited child node
-	 * 
+	 *
 	 * @param n
 	 * @return
 	 */
@@ -279,7 +320,7 @@ public class MCTS {
 
 	/**
 	 * Select the child node with the highest score
-	 * 
+	 *
 	 * @param n
 	 * @return
 	 */
@@ -308,17 +349,17 @@ public class MCTS {
 
 	/**
 	 * Playout function for MCTS
-	 * 
+	 *
 	 * @param state
 	 * @return
 	 */
 	private double[] playout(Node state, Board board) {
-		ArrayList<Move> moves;
+		List<Move> moves;
 		Move mv;
 		Board brd = board.duplicate();
 
 		// Start playing random moves until the game is over
-		while (!brd.gameOver()) {
+		while (!brd.gameOver()) { // TODO: Alpha-go uses policy net to choose weighted
 			if (playoutpolicy == null) {
 				moves = brd.getMoves(CallLocation.treePolicy);
 				if (brd.getCurrentPlayer() >= 0) {
@@ -343,7 +384,7 @@ public class MCTS {
 		return brd.getScore();
 	}
 
-	private Move getRandomMove(Board board, ArrayList<Move> moves) {
+	private Move getRandomMove(Board board, List<Move> moves) {
 		double[] weights = board.getMoveWeights();
 
 		double totalWeight = 0.0d;
@@ -367,16 +408,10 @@ public class MCTS {
 	/**
 	 * Produce a list of viable nodes to visit. The actual selection is done in
 	 * runMCTS
-	 * 
-	 * @param optimisticBias
-	 * @param pessimisticBias
-	 * @param explorationConstant
-	 * @return
 	 */
-	public ArrayList<Node> findChildren(Node n, Board b, double optimisticBias, double pessimisticBias,
-			double explorationConstant) {
+	public ArrayList<Node> findChildren(Node n, Board b, double optimisticBias, double pessimisticBias) {
 		double bestValue = Double.NEGATIVE_INFINITY;
-		ArrayList<Node> bestNodes = new ArrayList<Node>();
+		ArrayList<Node> bestNodes = new ArrayList<>();
 		for (Node s : n.children) {
 			// Pruned is only ever true if a branch has been pruned
 			// from the tree and that can only happen if bounds
@@ -386,7 +421,7 @@ public class MCTS {
 						+ pessimisticBias * s.pess[n.player];
 
 				if (heuristic != null) {
-					tempBest += heuristic.h(b);
+					tempBest += heuristic.h(b, s.move) * heuristicWeight;
 				}
 
 				if (tempBest > bestValue) {
@@ -408,11 +443,15 @@ public class MCTS {
 	 * Sets the exploration constant for the algorithm. You will need to find
 	 * the optimal value through testing. This can have a big impact on
 	 * performance. Default value is sqrt(2)
-	 * 
+	 *
 	 * @param exp
 	 */
 	public void setExplorationConstant(double exp) {
 		explorationConstant = exp;
+	}
+
+	public void setHeuristicWeight(double heuristicWeight) {
+		this.heuristicWeight = heuristicWeight;
 	}
 
 	public void setMoveSelectionPolicy(FinalSelectionPolicy policy) {
@@ -430,7 +469,7 @@ public class MCTS {
 	/**
 	 * This is multiplied by the pessimistic bounds of any considered move
 	 * during selection.
-	 * 
+	 *
 	 * @param b
 	 */
 	public void setPessimisticBias(double b) {
@@ -440,7 +479,7 @@ public class MCTS {
 	/**
 	 * This is multiplied by the optimistic bounds of any considered move during
 	 * selection.
-	 * 
+	 *
 	 * @param b
 	 */
 	public void setOptimisticBias(double b) {
@@ -454,7 +493,7 @@ public class MCTS {
 	/**
 	 * Switch on multi threading. The argument indicates
 	 * how many threads you want in the thread pool.
-	 * 
+	 *
 	 * @param threads
 	 */
 	public void enableRootParallelisation(int threads) {
@@ -464,8 +503,8 @@ public class MCTS {
 		threadpool = Executors.newFixedThreadPool(threads);
 		futures = new ArrayList<FutureTask<Node>>();
 	}
-
 	// Check if all threads are done
+
 	private boolean checkDone(ArrayList<FutureTask<Node>> tasks) {
 		for (FutureTask<Node> task : tasks) {
 			if (!task.isDone()) {

@@ -2,10 +2,10 @@ package main;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
-public class Node implements Comparable<Node>{
+public class Node implements Comparable<Node> {
 	public double[] score;
 	public double games;
 	public Move move;
@@ -18,13 +18,14 @@ public class Node implements Comparable<Node>{
 	public boolean pruned;
 
 	/**
-	 * This is a special Node constructor that merges 
+	 * This is a special Node constructor that merges
 	 * multiple root nodes into a single main node.
+	 *
 	 * @param rootNodes
 	 */
 	public Node(ArrayList<Node> rootNodes) {
 		LinkedList<Node> childnodes = new LinkedList<Node>();
-		
+
 		for (Node n : rootNodes) {
 			for (Node child : n.children) {
 				childnodes.add(child);
@@ -33,26 +34,27 @@ public class Node implements Comparable<Node>{
 
 		Collections.sort(childnodes);
 		children = new ArrayList<Node>();
-		
-		while (!childnodes.isEmpty()){
+
+		while (!childnodes.isEmpty()) {
 			LinkedList<Node> tnodes = new LinkedList<Node>();
 			Node curnode = childnodes.get(0);
 			childnodes.remove(0);
-			
-			while(!childnodes.isEmpty() && childnodes.get(0).compareTo(curnode) == 0){
+
+			while (!childnodes.isEmpty() && childnodes.get(0).compareTo(curnode) == 0) {
 				tnodes.add(childnodes.get(0));
 				childnodes.remove(0);
 			}
-			
+
 			children.add(new Node(tnodes));
 		}
-		
+
 	}
 
 	/**
 	 * This is a Node constructor that constructs a
 	 * new node by combining the stats for all nodes
 	 * passed into it.
+	 *
 	 * @param nodes
 	 */
 	private Node(LinkedList<Node> nodes) {
@@ -67,7 +69,7 @@ public class Node implements Comparable<Node>{
 
 	/**
 	 * This creates the root node
-	 * 
+	 *
 	 * @param b
 	 */
 	public Node(Board b) {
@@ -82,7 +84,7 @@ public class Node implements Comparable<Node>{
 
 	/**
 	 * This creates non-root nodes
-	 * 
+	 *
 	 * @param b
 	 * @param m
 	 * @param prnt
@@ -103,11 +105,9 @@ public class Node implements Comparable<Node>{
 
 	/**
 	 * Return the upper confidence bound of this state
-	 * 
-	 * @param c
-	 *            typically sqrt(2). Increase to emphasize exploration. Decrease
-	 *            to incr. exploitation
-	 * @param t
+	 *
+	 * @param c typically sqrt(2). Increase to emphasize exploration. Decrease
+	 *          to incr. exploitation
 	 * @return
 	 */
 	public double upperConfidenceBound(double c) {
@@ -116,7 +116,7 @@ public class Node implements Comparable<Node>{
 
 	/**
 	 * Update the tree with the new score.
-	 * 
+	 *
 	 * @param scr
 	 */
 	public void backPropagateScore(double[] scr) {
@@ -130,11 +130,11 @@ public class Node implements Comparable<Node>{
 
 	/**
 	 * Expand this node by populating its list of unvisited child nodes.
-	 * 
+	 *
 	 * @param currentBoard
 	 */
 	public void expandNode(Board currentBoard) {
-		ArrayList<Move> legalMoves = currentBoard.getMoves(CallLocation.treePolicy);
+		List<Move> legalMoves = currentBoard.getMoves(CallLocation.treePolicy);
 		unvisitedChildren = new ArrayList<Node>();
 		for (int i = 0; i < legalMoves.size(); i++) {
 			Node tempState = new Node(currentBoard, legalMoves.get(i), this);
@@ -145,9 +145,6 @@ public class Node implements Comparable<Node>{
 	/**
 	 * Set the bounds in the given node and propagate the values back up the
 	 * tree.
-	 * 
-	 * @param optimistic
-	 * @param pessimistic
 	 */
 	public void backPropagateBounds(double[] score) {
 		for (int i = 0; i < score.length; i++) {
@@ -227,7 +224,7 @@ public class Node implements Comparable<Node>{
 
 	/**
 	 * Select a child node at random and return it.
-	 * 
+	 *
 	 * @param board
 	 * @return
 	 */
@@ -255,5 +252,20 @@ public class Node implements Comparable<Node>{
 	@Override
 	public int compareTo(Node o) {
 		return move.compareTo(o.move);
+	}
+
+	@Override
+	public String toString() {
+		String[] scoreStrings = new String[score.length];
+		for (int i = 0; i < score.length; i++) {
+			scoreStrings[i] = String.valueOf(score[i]);
+		}
+		if (parent == null) {
+			return "ROOT";
+		} else if (parent.player < 0) {
+			return "" + move + " " + String.join(", ", scoreStrings);
+		} else {
+			return "" + move + " " + String.join(", ", scoreStrings) + " " + parent.player + " wins " + (int) (score[parent.player] * 100 / games) + "% of " + games;
+		}
 	}
 }

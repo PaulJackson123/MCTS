@@ -1,15 +1,13 @@
 package main.support;
 
 import main.Board;
+import main.Move;
 
 /**
  * Create a class implementing this interface and instantiate
  * it. Pass the instance to the MCTS instance using the
- * {@link #setHeuristicFunction(HeuristicFunction h) setHeuristicFunction} method.
-
- * @author KGS
- *
+ * {@link main.MCTS#setHeuristicFunction(HeuristicFunction h) setHeuristicFunction} method.
  */
 public interface HeuristicFunction {
-	public double h(Board board);
+	double h(Board board, Move move);
 }

@@ -1,5 +1,8 @@
 package connectFour;
 
+import main.MCTS;
+import main.Move;
+
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -10,27 +13,24 @@ import java.io.Writer;
 import java.util.Arrays;
 import java.util.Scanner;
 
-import main.MCTS;
-import main.Move;
-
 public class C4Main {
 	static int scorePlayer0 = 0;
 	static int scorePlayer1 = 0;
-	static int draws = 0;	
-	static double[] scr; 
-	
+	static int draws = 0;
+	static double[] scr;
+
 	public static void run(int games, int it, double exp, boolean bounds, double pess, double opti) {
 		MCTS player = new MCTS();
 		player.setExplorationConstant(exp);
 		player.setOptimisticBias(opti);
 		player.setPessimisticBias(pess);
 		player.setTimeDisplay(true);
-		
+
 		scorePlayer0 = 0;
 		scorePlayer1 = 0;
 		draws = 0;
 		scr = new double[2];
-		
+
 		// Set this to true to take control yourself!
 		boolean playerControl = false;
 		int activePlayerID = 0;
@@ -42,17 +42,17 @@ public class C4Main {
 				//cf.print();
 
 				if (gameInstance.currentPlayer != activePlayerID || !playerControl) {
-					Move m = player.runMCTS_UCT(gameInstance, it, bounds);
+					Move m = player.runMCTS_UCT(gameInstance, it, 0L, bounds);
 					gameInstance.makeMove(m);
 				} else {
 					System.out.println("Enter a row: ");
 					int n = readline.nextInt();
 					Move m = new ConnectFourMove(n);
-					gameInstance.makeMove(m);	
+					gameInstance.makeMove(m);
 				}
-				
+
 				//cf.print();
-								
+
 				if (gameInstance.gameOver()) {
 					scr = gameInstance.getScore();
 					if (scr[0] > 0.8) {
@@ -60,7 +60,7 @@ public class C4Main {
 					} else if (scr[1] > 0.8) {
 						scorePlayer1++;
 					} else {
-						draws ++;
+						draws++;
 					}
 
 					gameInstance.print();
@@ -69,7 +69,7 @@ public class C4Main {
 					break;
 				}
 			}
-				
+
 		}
 		readline.close();
 
@@ -78,10 +78,10 @@ public class C4Main {
 		System.out.println("Score for this run: " + scorePlayer0 + " / " + scorePlayer1 + " Draws: " + draws);
 
 		try {
-		    FileOutputStream fos = new FileOutputStream("newRuns_5.txt", true);
+			FileOutputStream fos = new FileOutputStream("newRuns_5.txt", true);
 			Writer writer = new BufferedWriter(new OutputStreamWriter(fos, "UTF-8"));
-			
-		    writer.write("Iterations: " + it + " Exp. Con.: " + exp + ", Bounds = " + bounds + "\n");
+
+			writer.write("Iterations: " + it + " Exp. Con.: " + exp + ", Bounds = " + bounds + "\n");
 			writer.write("pessBias: " + pess + " optiBias: " + opti + "\n");
 			writer.write("Score for this run: " + scorePlayer0 + " / " + scorePlayer1 + " Draws: " + draws + "\n");
 			writer.close();
@@ -96,7 +96,7 @@ public class C4Main {
 		}
 	}
 
-	public static void main(String[] args) {		
+	public static void main(String[] args) {
 		run(100, 200000, 1.4d, false, 0, 0);
 		//run(100, 50000, 1.45d, false, 0, 0);
 		//run(100, 50000, 1.3d, false, 0, 0);

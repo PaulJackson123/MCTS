@@ -5,8 +5,8 @@ import main.Move;
 public class TicTacToeMove implements Move {
 	int x;
 	int y;
-	
-	TicTacToeMove(int x, int y){
+
+	TicTacToeMove(int x, int y) {
 		this.x = x;
 		this.y = y;
 	}
@@ -15,5 +15,10 @@ public class TicTacToeMove implements Move {
 	public int compareTo(Move o) {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	@Override
+	public String toString() {
+		return "[" + x + "," + y + "]";
 	}
 }

@@ -1,14 +1,14 @@
 package twothousandfortyeight;
 
+import main.MCTS;
+import main.Move;
+
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Random;
-
-import main.MCTS;
-import main.Move;
 
 public class TTFEMain {
 
@@ -31,8 +31,8 @@ public class TTFEMain {
 		mcts.setTimeDisplay(true);
 		Move move;
 		Random random = new Random();
-		double []data = new double[games];
-		
+		double[] data = new double[games];
+
 		for (int i = 0; i < games; i++) {
 			TTFE b = new TTFE(4);
 
@@ -58,7 +58,7 @@ public class TTFEMain {
 			while (!b.gameOver()) {
 				roundcount++;
 				if (b.currentPlayer == 0) {
-					move = mcts.runMCTS_UCT(b, iterations, false);
+					move = mcts.runMCTS_UCT(b, iterations, 0L, false);
 					b.makeMove(move);
 
 					if (print) {
@@ -86,8 +86,8 @@ public class TTFEMain {
 						System.out.println("turns: " + b.turns);
 					}
 				}
-				
-				if (roundcount % 50 == 0){
+
+				if (roundcount % 50 == 0) {
 					System.out.print("-");
 				}
 			}
@@ -96,7 +96,7 @@ public class TTFEMain {
 			System.out.println(i + ": Total # moves: " + b.turns + " Score: " + b.score + " Max: " + (1 << findMax(b)));
 
 			data[i] = b.score;
-			
+
 			FileOutputStream fos;
 			try {
 				fos = new FileOutputStream(filename, true);
@@ -115,7 +115,7 @@ public class TTFEMain {
 		}
 		String variance = String.format("%.12f", computeVariance(data));
 		System.out.println("Mean: " + computeMean(data) + " Variance " + variance + " Deviation " + computeDeviation(data));
-		
+
 		FileOutputStream fos;
 		try {
 			fos = new FileOutputStream(filename, true);
@@ -127,7 +127,7 @@ public class TTFEMain {
 		} catch (IOException err) {
 			err.printStackTrace();
 		}
-		
+
 
 	}
 
@@ -143,28 +143,28 @@ public class TTFEMain {
 
 		return max;
 	}
-	
-	static double computeMean(double []score){
+
+	static double computeMean(double[] score) {
 		double sum = 0;
-		for (int r = 0; r < score.length; r++){
+		for (int r = 0; r < score.length; r++) {
 			sum += score[r] / score.length;
 		}
 		return sum;
 	}
-	
-	static double computeVariance(double []score){
-		double []squared = new double[score.length];
+
+	static double computeVariance(double[] score) {
+		double[] squared = new double[score.length];
 		double mean = computeMean(score);
 		double sum = 0;
-		for (int r = 0; r < score.length; r++){
+		for (int r = 0; r < score.length; r++) {
 			squared[r] = Math.pow(score[r] - mean, 2.0d);
 			sum += squared[r] / score.length;
 		}
 		return sum;
 	}
-	
-	static double computeDeviation(double []score){
+
+	static double computeDeviation(double[] score) {
 		return Math.sqrt(computeVariance(score));
 	}
-	
+
 }
