@@ -7,16 +7,16 @@ import main.Move;
 import java.util.ArrayList;
 
 public class TicTacToe implements Board {
-	int[][] board;
+	private int[][] board;
 	int currentPlayer;
-	int winner;
-	boolean draw;
-	boolean gameWon;
-	int freeslots;
+	private int winner;
+	private boolean draw;
+	private boolean gameWon;
+	private int freeSlots;
 
 	public TicTacToe() {
 		board = new int[3][3];
-		freeslots = 9;
+		freeSlots = 9;
 	}
 
 	@Override
@@ -25,13 +25,11 @@ public class TicTacToe implements Board {
 		t.winner = winner;
 		t.currentPlayer = currentPlayer;
 		t.draw = draw;
-		t.freeslots = freeslots;
+		t.freeSlots = freeSlots;
 		t.gameWon = gameWon;
 		t.board = new int[3][3];
 		for (int x = 0; x < 3; x++) {
-			for (int y = 0; y < 3; y++) {
-				t.board[x][y] = board[x][y];
-			}
+			System.arraycopy(board[x], 0, t.board[x], 0, 3);
 		}
 
 		return t;
@@ -44,7 +42,7 @@ public class TicTacToe implements Board {
 
 	@Override
 	public ArrayList<Move> getMoves(CallLocation location) {
-		ArrayList<Move> moves = new ArrayList<Move>();
+		ArrayList<Move> moves = new ArrayList<>();
 		for (int x = 0; x < 3; x++) {
 			for (int y = 0; y < 3; y++) {
 				if (board[x][y] == 0)
@@ -63,7 +61,7 @@ public class TicTacToe implements Board {
 		}
 
 		board[move.x][move.y] = currentPlayer + 1;
-		freeslots--;
+		freeSlots--;
 		final int cp = currentPlayer + 1;
 
 		if (board[0][0] == cp && board[0][1] == cp && board[0][2] == cp ||
@@ -76,7 +74,7 @@ public class TicTacToe implements Board {
 				board[0][2] == cp && board[1][1] == cp && board[2][0] == cp) {
 			gameWon = true;
 			winner = currentPlayer;
-		} else if (freeslots == 0) {
+		} else if (freeSlots == 0) {
 			gameWon = true;
 			draw = true;
 		}

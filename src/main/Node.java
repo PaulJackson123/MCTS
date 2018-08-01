@@ -20,32 +20,28 @@ public class Node implements Comparable<Node> {
 	/**
 	 * This is a special Node constructor that merges
 	 * multiple root nodes into a single main node.
-	 *
-	 * @param rootNodes
 	 */
 	public Node(ArrayList<Node> rootNodes) {
-		LinkedList<Node> childnodes = new LinkedList<Node>();
+		LinkedList<Node> childNodes = new LinkedList<>();
 
 		for (Node n : rootNodes) {
-			for (Node child : n.children) {
-				childnodes.add(child);
-			}
+			childNodes.addAll(n.children);
 		}
 
-		Collections.sort(childnodes);
-		children = new ArrayList<Node>();
+		Collections.sort(childNodes);
+		children = new ArrayList<>();
 
-		while (!childnodes.isEmpty()) {
-			LinkedList<Node> tnodes = new LinkedList<Node>();
-			Node curnode = childnodes.get(0);
-			childnodes.remove(0);
+		while (!childNodes.isEmpty()) {
+			LinkedList<Node> tempNodes = new LinkedList<>();
+			Node curNode = childNodes.get(0);
+			childNodes.remove(0);
 
-			while (!childnodes.isEmpty() && childnodes.get(0).compareTo(curnode) == 0) {
-				tnodes.add(childnodes.get(0));
-				childnodes.remove(0);
+			while (!childNodes.isEmpty() && childNodes.get(0).compareTo(curNode) == 0) {
+				tempNodes.add(childNodes.get(0));
+				childNodes.remove(0);
 			}
 
-			children.add(new Node(tnodes));
+			children.add(new Node(tempNodes));
 		}
 
 	}
@@ -54,8 +50,6 @@ public class Node implements Comparable<Node> {
 	 * This is a Node constructor that constructs a
 	 * new node by combining the stats for all nodes
 	 * passed into it.
-	 *
-	 * @param nodes
 	 */
 	private Node(LinkedList<Node> nodes) {
 		move = nodes.get(0).move;
@@ -69,11 +63,9 @@ public class Node implements Comparable<Node> {
 
 	/**
 	 * This creates the root node
-	 *
-	 * @param b
 	 */
 	public Node(Board b) {
-		children = new ArrayList<Node>();
+		children = new ArrayList<>();
 		player = b.getCurrentPlayer();
 		score = new double[b.getQuantityOfPlayers()];
 		pess = new double[b.getQuantityOfPlayers()];
@@ -84,14 +76,10 @@ public class Node implements Comparable<Node> {
 
 	/**
 	 * This creates non-root nodes
-	 *
-	 * @param b
-	 * @param m
-	 * @param prnt
 	 */
-	public Node(Board b, Move m, Node prnt) {
-		children = new ArrayList<Node>();
-		parent = prnt;
+	private Node(Board b, Move m, Node parent) {
+		children = new ArrayList<>();
+		this.parent = parent;
 		move = m;
 		Board tempBoard = b.duplicate();
 		tempBoard.makeMove(m);
@@ -107,8 +95,7 @@ public class Node implements Comparable<Node> {
 	 * Return the upper confidence bound of this state
 	 *
 	 * @param c typically sqrt(2). Increase to emphasize exploration. Decrease
-	 *          to incr. exploitation
-	 * @return
+	 *          to increment exploitation
 	 */
 	public double upperConfidenceBound(double c) {
 		return score[parent.player] / games + c * Math.sqrt(Math.log(parent.games + 1) / games);
@@ -116,8 +103,6 @@ public class Node implements Comparable<Node> {
 
 	/**
 	 * Update the tree with the new score.
-	 *
-	 * @param scr
 	 */
 	public void backPropagateScore(double[] scr) {
 		this.games++;
@@ -130,14 +115,12 @@ public class Node implements Comparable<Node> {
 
 	/**
 	 * Expand this node by populating its list of unvisited child nodes.
-	 *
-	 * @param currentBoard
 	 */
 	public void expandNode(Board currentBoard) {
 		List<Move> legalMoves = currentBoard.getMoves(CallLocation.treePolicy);
-		unvisitedChildren = new ArrayList<Node>();
-		for (int i = 0; i < legalMoves.size(); i++) {
-			Node tempState = new Node(currentBoard, legalMoves.get(i), this);
+		unvisitedChildren = new ArrayList<>();
+		for (Move legalMove : legalMoves) {
+			Node tempState = new Node(currentBoard, legalMove, this);
 			unvisitedChildren.add(tempState);
 		}
 	}
@@ -224,16 +207,13 @@ public class Node implements Comparable<Node> {
 
 	/**
 	 * Select a child node at random and return it.
-	 *
-	 * @param board
-	 * @return
 	 */
 	public int randomSelect(Board board) {
 		double[] weights = board.getMoveWeights();
 
 		double totalWeight = 0.0d;
-		for (int i = 0; i < weights.length; i++) {
-			totalWeight += weights[i];
+		for (double weight : weights) {
+			totalWeight += weight;
 		}
 
 		int randomIndex = -1;

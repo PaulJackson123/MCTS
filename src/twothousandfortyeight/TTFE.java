@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class TTFE implements Board {
-	int currentPlayer;
 	public int[][] board;
-	int size;
-	int maxtile;
 	public int score;
+	int currentPlayer;
+	private int size;
+	private int maxtile;
 	int turns;
 
 	public TTFE(int s) {
@@ -32,9 +32,7 @@ public class TTFE implements Board {
 		n.score = score;
 		n.currentPlayer = this.currentPlayer;
 		for (int x = 0; x < size; x++) {
-			for (int y = 0; y < size; y++) {
-				n.board[x][y] = this.board[x][y];
-			}
+			System.arraycopy(this.board[x], 0, n.board[x], 0, size);
 		}
 
 		return n;
@@ -42,7 +40,7 @@ public class TTFE implements Board {
 
 	@Override
 	public ArrayList<Move> getMoves(CallLocation location) {
-		ArrayList<Move> out = new ArrayList<Move>();
+		ArrayList<Move> out = new ArrayList<>();
 		if (currentPlayer == 0) {
 			// It's the player's turn
 
@@ -71,8 +69,8 @@ public class TTFE implements Board {
 		return out;
 	}
 
-	public Move makeRandomChoice(Random r) {
-		ArrayList<Move> out = new ArrayList<Move>();
+	Move makeRandomChoice(Random r) {
+		ArrayList<Move> out = new ArrayList<>();
 		for (int x = 0; x < size; x++) {
 			for (int y = 0; y < size; y++) {
 				if (board[x][y] == 0) {
@@ -82,8 +80,7 @@ public class TTFE implements Board {
 			}
 		}
 
-		Move m = out.get(r.nextInt(out.size()));
-		return m;
+		return out.get(r.nextInt(out.size()));
 	}
 
 	@Override
@@ -108,11 +105,8 @@ public class TTFE implements Board {
 
 	/**
 	 * Merge same integers
-	 *
-	 * @param i
-	 * @param d
 	 */
-	public void mergeLine(int i, Direction d) {
+	private void mergeLine(int i, Direction d) {
 		if (d == Direction.Up) {
 			for (int r = 0; r < size - 1; r++) {
 				if (board[i][r] == board[i][r + 1] && board[i][r] > 0) {
@@ -156,11 +150,8 @@ public class TTFE implements Board {
 
 	/**
 	 * Pack the line by removing empty tiles
-	 *
-	 * @param i
-	 * @param d
 	 */
-	public void fixLine(int i, Direction d) {
+	private void fixLine(int i, Direction d) {
 		int step = 1;
 		if (d == Direction.Up) {
 			for (int r = 0; r < size; r++) {

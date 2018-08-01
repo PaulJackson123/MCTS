@@ -8,18 +8,17 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class C4Main {
-	static int scorePlayer0 = 0;
-	static int scorePlayer1 = 0;
-	static int draws = 0;
-	static double[] scr;
+class C4Main {
+	private static int scorePlayer0 = 0;
+	private static int scorePlayer1 = 0;
+	private static int draws = 0;
+	private static double[] scr;
 
-	public static void run(int games, int it, double exp, boolean bounds, double pess, double opti) {
+	private static void run(int games, int it, double exp, boolean bounds, double pess, double opti) {
 		MCTS player = new MCTS();
 		player.setExplorationConstant(exp);
 		player.setOptimisticBias(opti);
@@ -34,7 +33,7 @@ public class C4Main {
 		// Set this to true to take control yourself!
 		boolean playerControl = false;
 		int activePlayerID = 0;
-		Scanner readline = new Scanner(System.in);
+		Scanner scanner = new Scanner(System.in);
 
 		for (int i = 0; i < games; i++) {
 			ConnectFour gameInstance = new ConnectFour();
@@ -46,7 +45,7 @@ public class C4Main {
 					gameInstance.makeMove(m);
 				} else {
 					System.out.println("Enter a row: ");
-					int n = readline.nextInt();
+					int n = scanner.nextInt();
 					Move m = new ConnectFourMove(n);
 					gameInstance.makeMove(m);
 				}
@@ -71,7 +70,7 @@ public class C4Main {
 			}
 
 		}
-		readline.close();
+		scanner.close();
 
 		System.out.println("Iterations: " + it + " Exp. Con.: " + exp);
 		System.out.println("pessBias: " + pess + " optiBias: " + opti);
@@ -87,10 +86,6 @@ public class C4Main {
 			writer.close();
 			fos.close();
 
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -10,7 +10,7 @@ import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.Arrays;
 
-public class AzulMain {
+class AzulMain {
 
 	private static final int RUNS = 0;
 	private static final long MAX_TIME = 20_000L;

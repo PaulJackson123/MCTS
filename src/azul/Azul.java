@@ -9,6 +9,14 @@ import java.util.*;
 public class Azul implements Board {
 
 	private static final int EXPANSIONS_PER_NODE = 3;
+	private static final double[] WEIGHTS = new double[EXPANSIONS_PER_NODE];
+	private static final Random RANDOM = new Random();
+	private static int[] factoriesPerPlayer = {0, 0, 5, 7, 9};
+
+	static {
+		Arrays.fill(WEIGHTS, 1.0d);
+	}
+
 	// Colors are: 0-null 1-blue 2-yellow 3-red 4-black 5-teal
 	private int numPlayers;
 	private boolean variantPlay;
@@ -29,16 +37,6 @@ public class Azul implements Board {
 	private boolean draw;
 	private boolean gameOver;
 	private boolean initialized;
-
-	private static int[] factoriesPerPlayer = {0, 0, 5, 7, 9};
-	private static final double[] WEIGHTS = new double[EXPANSIONS_PER_NODE];
-
-	private static final Random RANDOM = new Random();
-
-	static {
-		Arrays.fill(WEIGHTS, 1.0d);
-	}
-
 	private Map<AzulPlayerMove, Double> heuristics;
 
 	Azul(final int numPlayers, final boolean variantPlay) {
@@ -81,6 +79,7 @@ public class Azul implements Board {
 		return z;
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private void copy3d(final int[][][] src, final int[][][] dest, final int s1, final int s2, final int s3) {
 		for (int i = 0; i < s1; i++) {
 			copy2d(src[i], dest[i], s2, s3);
@@ -94,17 +93,8 @@ public class Azul implements Board {
 	}
 
 	private void copy1d(final Object src, final Object dest, final int s) {
+		//noinspection SuspiciousSystemArraycopy
 		System.arraycopy(src, 0, dest, 0, s);
-	}
-
-	private void fill2d(final int[][] ints, final int s1, int val) {
-		for (int i = 0; i < s1; i++) {
-			fill1d(ints[i], val);
-		}
-	}
-
-	private void fill1d(int[] ints, int val) {
-		Arrays.fill(ints, val);
 	}
 
 	@Override // TODO: Cache this? At least for player moves
@@ -726,7 +716,7 @@ public class Azul implements Board {
 			}
 		}
 		int point = b.points[currentPlayer];
-		int diff = 0;
+		int diff;
 
 		if (point != best) {
 			diff = point - best;

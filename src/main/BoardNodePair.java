@@ -1,6 +1,6 @@
 package main;
 
-public class BoardNodePair {
+class BoardNodePair {
 	private Board b;
 	private Node p;
 

@@ -2,7 +2,7 @@ package ticTacToe;
 
 import main.Move;
 
-public class TicTacToeMove implements Move {
+class TicTacToeMove implements Move {
 	int x;
 	int y;
 

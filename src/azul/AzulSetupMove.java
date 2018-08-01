@@ -2,7 +2,7 @@ package azul;
 
 import main.Move;
 
-public class AzulSetupMove implements Move {
+class AzulSetupMove implements Move {
 	private final int nextPlayer;
 
 	private final int[] factorySelections;

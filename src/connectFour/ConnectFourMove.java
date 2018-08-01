@@ -9,7 +9,7 @@ import main.Move;
  * itself is responsible for implementing
  * the function that actually performs this move.
  */
-public class ConnectFourMove implements Move {
+class ConnectFourMove implements Move {
 	int row;
 
 	public ConnectFourMove(int row) {
@@ -17,9 +17,7 @@ public class ConnectFourMove implements Move {
 	}
 
 	public String toString() {
-		StringBuilder strb = new StringBuilder();
-		strb.append(row);
-		return strb.toString();
+		return String.valueOf(row);
 	}
 
 	@Override

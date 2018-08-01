@@ -12,5 +12,5 @@ import main.Board;
  * @author KGS
  */
 public interface PlayoutSelection {
-	public void Process(Board board);
+	void Process(Board board);
 }

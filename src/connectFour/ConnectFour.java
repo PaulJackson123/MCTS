@@ -8,12 +8,12 @@ import java.util.ArrayList;
 
 public class ConnectFour implements Board {
 
-	public int[][] board; // The actual game board data
+	private int[][] board; // The actual game board data
 	public int currentPlayer = 0;
-	public int freeSlots[]; // The number of free slots per column
-	public int totalFreeSlots = 6 * 7;
-	public int winner = -1;
-	public boolean draw = false;
+	private int[] freeSlots; // The number of free slots per column
+	private int totalFreeSlots = 6 * 7;
+	private int winner = -1;
+	private boolean draw = false;
 
 	public ConnectFour() {
 		board = new int[7][6];
@@ -29,13 +29,10 @@ public class ConnectFour implements Board {
 		// Copy board data
 		ConnectFour newBoard = new ConnectFour();
 		for (int x = 0; x < 7; x++) {
-			for (int y = 0; y < 6; y++) {
-				newBoard.board[x][y] = board[x][y];
-			}
+			System.arraycopy(board[x], 0, newBoard.board[x], 0, 6);
 		}
 		newBoard.currentPlayer = this.currentPlayer;
-		for (int k = 0; k < 7; k++)
-			newBoard.freeSlots[k] = freeSlots[k];
+		System.arraycopy(freeSlots, 0, newBoard.freeSlots, 0, 7);
 		newBoard.totalFreeSlots = totalFreeSlots;
 		newBoard.winner = winner;
 		newBoard.draw = draw;
@@ -44,7 +41,7 @@ public class ConnectFour implements Board {
 
 	@Override
 	public ArrayList<Move> getMoves(CallLocation location) {
-		ArrayList<Move> moves = new ArrayList<Move>();
+		ArrayList<Move> moves = new ArrayList<>();
 		for (int i = 0; i < 7; i++) {
 			if (freeSlots[i] > 0) {
 				ConnectFourMove cfm = new ConnectFourMove(i);

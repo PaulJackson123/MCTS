@@ -2,7 +2,7 @@ package azul;
 
 import main.Move;
 
-public class AzulPlayerMove implements Move {
+class AzulPlayerMove implements Move {
 	/**
 	 * Source factory. 0 = center area, 1 - n = factory number
 	 */

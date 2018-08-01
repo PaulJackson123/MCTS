@@ -10,7 +10,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Random;
 
-public class TTFEMain {
+class TTFEMain {
 
 	public static void main(String[] args) {
 		//runGame(100, 1.4d, 500, false, "2048-100games-500i-1.4c.txt");
@@ -24,7 +24,7 @@ public class TTFEMain {
 		//runGame(100, 2.8d, 2000, false, "2048-300100gamesgames.txt", "300games-6000i-2.8c ");
 	}
 
-	static void runGame(int games, double constant, int iterations, boolean print, String filename, String lprefix) {
+	private static void runGame(int games, double constant, int iterations, boolean print, String filename, String lprefix) {
 		MCTS mcts = new MCTS();
 		mcts.setExplorationConstant(constant);
 		mcts.enableRootParallelisation(4);
@@ -131,7 +131,7 @@ public class TTFEMain {
 
 	}
 
-	static int findMax(TTFE board) {
+	private static int findMax(TTFE board) {
 		int max = 0;
 		for (int x = 0; x < 4; x++) {
 			for (int y = 0; y < 4; y++) {
@@ -144,15 +144,15 @@ public class TTFEMain {
 		return max;
 	}
 
-	static double computeMean(double[] score) {
+	private static double computeMean(double[] score) {
 		double sum = 0;
-		for (int r = 0; r < score.length; r++) {
-			sum += score[r] / score.length;
+		for (double aScore : score) {
+			sum += aScore / score.length;
 		}
 		return sum;
 	}
 
-	static double computeVariance(double[] score) {
+	private static double computeVariance(double[] score) {
 		double[] squared = new double[score.length];
 		double mean = computeMean(score);
 		double sum = 0;
@@ -163,7 +163,7 @@ public class TTFEMain {
 		return sum;
 	}
 
-	static double computeDeviation(double[] score) {
+	private static double computeDeviation(double[] score) {
 		return Math.sqrt(computeVariance(score));
 	}
 

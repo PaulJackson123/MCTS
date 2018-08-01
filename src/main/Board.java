@@ -8,10 +8,8 @@ public interface Board {
 	 * Create one copy of the board. It is important that the copies do
 	 * not store references to objects shared by other boards unless
 	 * those objects are immutable.
-	 *
-	 * @return
 	 */
-	public Board duplicate();
+	Board duplicate();
 
 	/**
 	 * Get a list of all available moves for the current state. MCTS
@@ -19,40 +17,29 @@ public interface Board {
 	 * <p>
 	 * The location parameter indicates from where in the algorithm
 	 * the method was called. Can be either treePolicy or playout.
-	 *
-	 * @param location
-	 * @return
 	 */
-	public List<Move> getMoves(CallLocation location);
+	List<Move> getMoves(CallLocation location);
 
 	/**
 	 * Apply the move m to the current state of the board.
-	 *
-	 * @param m
 	 */
-	public void makeMove(Move m);
+	void makeMove(Move m);
 
 	/**
 	 * Returns true if the game is over.
-	 *
-	 * @return
 	 */
-	public boolean gameOver();
+	boolean gameOver();
 
 	/**
 	 * Returns the player ID for the player whose turn is active. This method is
 	 * called by the MCTS.
-	 *
-	 * @return
 	 */
-	public int getCurrentPlayer();
+	int getCurrentPlayer();
 
 	/**
 	 * Returns the number of players.
-	 *
-	 * @return
 	 */
-	public int getQuantityOfPlayers();
+	int getQuantityOfPlayers();
 
 	/**
 	 * Returns a score vector.
@@ -62,7 +49,7 @@ public interface Board {
 	 *
 	 * @return score array
 	 */
-	public double[] getScore();
+	double[] getScore();
 
 	/**
 	 * Returns an array of probability weights
@@ -72,7 +59,7 @@ public interface Board {
 	 *
 	 * @return array of weights
 	 */
-	public double[] getMoveWeights();
+	double[] getMoveWeights();
 
-	public void bPrint();
+	void bPrint();
 }

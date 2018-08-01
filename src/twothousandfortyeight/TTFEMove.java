@@ -2,7 +2,7 @@ package twothousandfortyeight;
 
 import main.Move;
 
-public class TTFEMove implements Move {
+class TTFEMove implements Move {
 	int x;
 	int y;
 	Direction dir = Direction.Up;
