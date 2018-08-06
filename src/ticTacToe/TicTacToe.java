@@ -11,7 +11,7 @@ public class TicTacToe implements Board {
 	int currentPlayer;
 	private int winner;
 	private boolean draw;
-	private boolean gameWon;
+	private boolean gameOver;
 	private int freeSlots;
 
 	public TicTacToe() {
@@ -26,7 +26,7 @@ public class TicTacToe implements Board {
 		t.currentPlayer = currentPlayer;
 		t.draw = draw;
 		t.freeSlots = freeSlots;
-		t.gameWon = gameWon;
+		t.gameOver = gameOver;
 		t.board = new int[3][3];
 		for (int x = 0; x < 3; x++) {
 			System.arraycopy(board[x], 0, t.board[x], 0, 3);
@@ -37,7 +37,7 @@ public class TicTacToe implements Board {
 
 	@Override
 	public boolean gameOver() {
-		return gameWon;
+		return gameOver;
 	}
 
 	@Override
@@ -72,10 +72,10 @@ public class TicTacToe implements Board {
 				board[0][2] == cp && board[1][2] == cp && board[2][2] == cp ||
 				board[0][0] == cp && board[1][1] == cp && board[2][2] == cp ||
 				board[0][2] == cp && board[1][1] == cp && board[2][0] == cp) {
-			gameWon = true;
+			gameOver = true;
 			winner = currentPlayer;
 		} else if (freeSlots == 0) {
-			gameWon = true;
+			gameOver = true;
 			draw = true;
 		}
 

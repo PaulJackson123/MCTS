@@ -30,7 +30,7 @@ class TTTMain {
 				if (humanPlayer[ttt.currentPlayer]) {
 					move = getHumanMove(ttt);
 				} else {
-					move = mcts.runMCTS_UCT(ttt, 120000, 0L, false);
+					move = mcts.runMCTS_UCT(ttt, 1000000, 0L, false);
 				}
 				ttt.makeMove(move);
 			}

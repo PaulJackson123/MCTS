@@ -6,16 +6,8 @@ import main.support.PlayoutSelection;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
+import java.util.*;
+import java.util.concurrent.*;
 
 // TODO: Detect end of game, change choice to best score differential
 public class MCTS {
@@ -49,10 +41,10 @@ public class MCTS {
 
 	public Move selectRandom(Board startingBoard) {
 		Node rootNode = new Node(startingBoard);
-		if (rootNode.unvisitedChildren == null) {
+		if (rootNode.children == null) {
 			rootNode.expandNode(startingBoard);
 		}
-		Node node = rootNode.unvisitedChildren.get(random.nextInt(rootNode.unvisitedChildren.size()));
+		Node node = rootNode.children.get(random.nextInt(rootNode.children.size()));
 		return node.move;
 	}
 
@@ -78,23 +70,32 @@ public class MCTS {
 		// No need to make multiple runs for moves that will be selected randomly
 		int runs1 = startingBoard.getCurrentPlayer() < 0 ? 1 : runs;
 		if (!pMode) {
+			int i = 1;
 			select(startingBoard.duplicate(), rootNode);
-			if (!rootNode.unvisitedChildren.isEmpty() || rootNode.children.size() != 1) {
-				for (int i = 1; runs1 > 0 && i < runs1 || runs1 == 0 && System.currentTimeMillis() - startTime < maxTime; i++) {
+			if (rootNode.children.size() > 1) {
+				while (rootNode.endScore == null &&
+						(runs1 > 0 && i < runs1 || runs1 == 0 &&
+								System.currentTimeMillis() - startTime < maxTime)) {
 					select(startingBoard.duplicate(), rootNode);
+					i++;
 				}
 			}
+			if (rootNode.endScore != null) {
+				System.out.println("Perfect play results in scores " + Arrays.toString(rootNode.endScore));
+			}
+			System.out.println("" + i + " trials run.");
 			Node bestNodeFound = robustChild(rootNode);
 			bestMoveFound = bestNodeFound.move;
 			writer.print("Player " + startingBoard.getCurrentPlayer() + " chooses " + bestMoveFound);
-			while (!bestNodeFound.children.isEmpty()) {
-				bestNodeFound = robustChild(bestNodeFound);
+			Node tempBest = bestNodeFound;
+			while (tempBest.children != null && !tempBest.children.isEmpty()) {
+				tempBest = robustChild(tempBest);
 				writer.println("=>");
-				writer.print("\tPlayer " + bestNodeFound.parent.player + " chooses " + bestNodeFound.move);
+				writer.print("\tPlayer " + tempBest.parent.player + " chooses " + tempBest.move);
 			}
 			writer.println();
 			writer.println("Choices\n" + getChildrenPrintString(rootNode.children));
-			writer.println("Children" + getChildrenPrintString(bestNodeFound.children));
+			writer.println("Children\n" + getChildrenPrintString(bestNodeFound.children));
 			writer.println();
 			writer.flush();
 		} else {
@@ -129,14 +130,14 @@ public class MCTS {
 
 		if (this.trackTime) {
 			System.out.println("Selected move: " + bestMoveFound);
-			System.out.println("Thinking time per move in milliseconds: " + (endTime - startTime));
+			System.out.println("Thinking time in milliseconds: " + (endTime - startTime));
 		}
 
 		return bestMoveFound;
 	}
 
 	private String getChildrenPrintString(ArrayList<Node> children) {
-		ArrayList<Node> nodes = new ArrayList<>(children);
+		List<Node> nodes = children == null ? Collections.emptyList() : new ArrayList<>(children);
 		nodes.sort(NODE_PRINT_COMPARATOR.reversed());
 		return nodes.toString().replace(", AzulPlayerMove", ",\nAzulPlayerMove");
 	}
@@ -188,61 +189,39 @@ public class MCTS {
 		// the new node or the deepest node it could reach. Return too
 		// a board matching the returned node.
 		BoardNodePair data = treePolicy(currentBoard, currentNode);
+		Board b = data.getBoard();
+		Node n = data.getNode();
 
-		// Run a random playout until the end of the game.
-		double[] score = playout(data.getBoard());
+		// If playedToEnd get score from node.endScore, else, run a random playout
+		double[] score = n.endScore == null ? playout(b) : n.endScore;
 
 		// Back propagate results of playout.
-		Node n = data.getNode();
-		n.backPropagateScore(score);
+		n.backPropagateScore(score, true);
 		if (scoreBounds) {
 			n.backPropagateBounds(score);
 		}
 	}
 
-	/**
-	 *
-	 */
 	private BoardNodePair treePolicy(Board b, Node node) {
-		while (!b.gameOver()) {
+		boolean atLeaf = false;
+		while (!b.gameOver() && !atLeaf && node.endScore == null) {
+			atLeaf = node.children == null;
+			if (atLeaf) {
+				node.expandNode(b);
+			}
+
 			if (node.player >= 0) { // this is a regular node
-				if (node.unvisitedChildren == null) {
-					node.expandNode(b);
+				ArrayList<Node> bestNodes = findChildren(node, b, optimisticBias, pessimisticBias);
+				if (bestNodes.size() == 0) {
+					// We have failed to find a single child to visit
+					// from a non-terminal node. Maybe all nodes have been pruned,
+					// or all nodes returned NaN for score, so we return a
+					// random node.
+					bestNodes = node.children;
 				}
-
-				if (!node.unvisitedChildren.isEmpty()) {
-					Node temp = node.unvisitedChildren.remove(random.nextInt(node.unvisitedChildren.size()));
-					node.children.add(temp);
-					b.makeMove(temp.move);
-					return new BoardNodePair(b, temp);
-				} else {
-					ArrayList<Node> bestNodes = findChildren(node, b, optimisticBias, pessimisticBias);
-					if (bestNodes.size() == 0) {
-						// We have failed to find a single child to visit
-						// from a non-terminal node, so we conclude that
-						// all children must have been pruned, and that
-						// therefore there is no reason to continue.
-						return new BoardNodePair(b, node);
-					}
-
-					Node finalNode = bestNodes.get(random.nextInt(bestNodes.size()));
-					node = finalNode;
-					b.makeMove(finalNode.move);
-				}
+				node = bestNodes.get(random.nextInt(bestNodes.size()));
+				b.makeMove(node.move);
 			} else { // this is a random node
-
-				// Random nodes are special. We must guarantee that
-				// every random node has a fully populated list of
-				// child nodes and that the list of unvisited children
-				// is empty. We start by checking if we have been to
-				// this node before. If we haven't, we must initialise
-				// all of this node's children properly.
-
-				if (node.unvisitedChildren == null) {
-					node.expandNode(b);
-					node.children.addAll(node.unvisitedChildren);
-					node.unvisitedChildren.clear();
-				}
 
 				// The tree policy for random nodes is different. We
 				// ignore selection heuristics and pick one node at
@@ -251,6 +230,10 @@ public class MCTS {
 				node = node.children.get(node.randomSelect(b));
 				b.makeMove(node.move);
 			}
+		}
+
+		if (b.gameOver()) {
+			node.endScore = b.getScore();
 		}
 
 		return new BoardNodePair(b, node);
@@ -332,31 +315,33 @@ public class MCTS {
 	 */
 	private double[] playout(Board board) {
 		List<Move> moves;
-		Move mv;
-		Board brd = board.duplicate();
-
-		// Start playing random moves until the game is over
-		while (!brd.gameOver()) { // TODO: Alpha-go uses policy net to choose weighted
-			if (playoutPolicy == null) {
-				moves = brd.getMoves(CallLocation.treePolicy);
-				if (brd.getCurrentPlayer() >= 0) {
-					// make random selection normally
-					mv = moves.get(random.nextInt(moves.size()));
-				} else {
-
-					// This situation only occurs when a move
-					// is entirely random, for example a die
-					// roll. We must consider the random weights
-					// of the moves.
-
-					mv = getRandomMove(brd, moves);
-				}
-
-				brd.makeMove(mv);
-			} else {
-				playoutPolicy.Process(board);
-			}
+		if (board.gameOver()) {
+			return board.getScore();
 		}
+
+		Board brd = board.duplicate();
+		// Start playing random moves until the game is over
+		do { // TODO: Alpha-go uses policy net to choose weighted
+            if (playoutPolicy == null) {
+                moves = brd.getMoves(CallLocation.treePolicy);
+	            if (brd.getCurrentPlayer() >= 0) {
+                    // make random selection normally
+		            brd.makeMove(moves.get(random.nextInt(moves.size())));
+                }
+                else {
+		            // This situation only occurs when a move
+                    // is entirely random, for example a die
+                    // roll. We must consider the random weights
+                    // of the moves.
+
+		            brd.makeMove(getRandomMove(brd, moves));
+                }
+            }
+            else {
+                playoutPolicy.Process(board);
+            }
+        }
+        while (!brd.gameOver());
 
 		return brd.getScore();
 	}
@@ -383,32 +368,36 @@ public class MCTS {
 	}
 
 	/**
-	 * Produce a list of viable nodes to visit. The actual selection is done in
-	 * runMCTS
+	 * Produce a list of viable nodes to visit. The actual selection is done in runMCTS
 	 */
 	private ArrayList<Node> findChildren(Node n, Board b, double optimisticBias, double pessimisticBias) {
 		double bestValue = Double.NEGATIVE_INFINITY;
 		ArrayList<Node> bestNodes = new ArrayList<>();
+		boolean foundNotAtEnd = false;
 		for (Node s : n.children) {
-			// Pruned is only ever true if a branch has been pruned
-			// from the tree and that can only happen if bounds
-			// propagation mode is enabled.
-			if (s.pruned == false) {
-				double tempBest = s.upperConfidenceBound(explorationConstant) + optimisticBias * s.opti[n.player]
-						+ pessimisticBias * s.pess[n.player];
+			if (!s.pruned) {
+				// Only consider nodes searched to end if no other nodes have been searched to the end
+				if (!foundNotAtEnd || s.endScore == null) {
+					if (!foundNotAtEnd && s.endScore == null) {
+						// Reset search now that we've found a node that was NOT searched to the end
+						foundNotAtEnd = true;
+						bestValue = Double.NEGATIVE_INFINITY;
+//						bestNodes.clear(); // This is unnecessary given clear below
+					}
+					double tempBest = s.upperConfidenceBound(explorationConstant) + optimisticBias * s.opti[n.player] + pessimisticBias * s.pess[n.player];
+					if (heuristic != null) {
+						tempBest += heuristic.h(b, s.move) * heuristicWeight;
+					}
 
-				if (heuristic != null) {
-					tempBest += heuristic.h(b, s.move) * heuristicWeight;
-				}
-
-				if (tempBest > bestValue) {
-					// If we found a better node
-					bestNodes.clear();
-					bestNodes.add(s);
-					bestValue = tempBest;
-				} else if (tempBest == bestValue) {
-					// If we found an equal node
-					bestNodes.add(s);
+					if (tempBest > bestValue) {
+						// If we found a better node
+						bestNodes.clear();
+						bestNodes.add(s);
+						bestValue = tempBest;
+					} else if (tempBest == bestValue) {
+						// If we found an equal node
+						bestNodes.add(s);
+					}
 				}
 			}
 		}

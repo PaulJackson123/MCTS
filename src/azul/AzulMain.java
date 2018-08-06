@@ -14,11 +14,11 @@ class AzulMain {
 
 	private static final int RUNS = 0;
 	private static final long MAX_TIME = 20_000L;
-	private static boolean[] humanPlayer = {true, false, false};
+	private static boolean[] humanPlayer = {true, false};
 
 	public static void main(String[] args) {
 		MCTS mcts = new MCTS();
-		mcts.setExplorationConstant(0.2);
+		mcts.setExplorationConstant(0.36);
 		mcts.setHeuristicWeight(1.0);
 		mcts.setTimeDisplay(true);
 		Move move;

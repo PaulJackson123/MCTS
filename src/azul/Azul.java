@@ -8,7 +8,7 @@ import java.util.*;
 
 public class Azul implements Board {
 
-	private static final int EXPANSIONS_PER_NODE = 3;
+	private static final int EXPANSIONS_PER_NODE = 7;
 	private static final double[] WEIGHTS = new double[EXPANSIONS_PER_NODE];
 	private static final Random RANDOM = new Random();
 	private static int[] factoriesPerPlayer = {0, 0, 5, 7, 9};
