@@ -3,15 +3,17 @@ package azul;
 import main.Board;
 import main.CallLocation;
 import main.Move;
+import main.Utils;
 
 import java.util.*;
 
-public class Azul implements Board {
+class Azul implements Board {
 
 	private static final int EXPANSIONS_PER_NODE = 7;
 	private static final double[] WEIGHTS = new double[EXPANSIONS_PER_NODE];
-	private static final Random RANDOM = new Random();
-	private static int[] factoriesPerPlayer = {0, 0, 5, 7, 9};
+	static final Random RANDOM = new Random();
+	private static final int MAX_TURNS = 1000;
+	static int[] factoriesPerPlayer = {0, 0, 5, 7, 9};
 
 	static {
 		Arrays.fill(WEIGHTS, 1.0d);
@@ -28,7 +30,7 @@ public class Azul implements Board {
 	private List<List<Integer>> floors; // [player] tile colors, zero for playFirstTile
 	private List<int[]> factories = new ArrayList<>(); // each List element is a factory holding 4-element array of colors
 	private List<Integer> centerTiles = new ArrayList<>();
-	private List<Integer> tileBag = new LinkedList<>();
+	private List<Integer> tileBag = new ArrayList<>();
 	private List<Integer> tileBox = new ArrayList<>();
 	private int playFirstTile = -1; // 0-based player number - -1 means play-first tile is still in center of board
 	private int currentPlayer = -1; // 0-based player number - -1 is chance player that sets board between rounds
@@ -36,10 +38,42 @@ public class Azul implements Board {
 	private boolean roundComplete = true;
 	private boolean draw;
 	private boolean gameOver;
-	private boolean initialized;
 	private Map<AzulPlayerMove, Double> heuristics;
 
-	Azul(final int numPlayers, final boolean variantPlay) {
+	public Azul(int numPlayers, boolean variantPlay) {
+		init(numPlayers, variantPlay);
+		// This is setup for a new game
+		for (int i = 1; i <= 5; i++) {
+			for (int j = 0; j < 20; j++) {
+				tileBag.add(i);
+			}
+		}
+	}
+
+	private Azul(Azul z) {
+		init(z.numPlayers, z.variantPlay);
+		Utils.copy1d(z.points, points, numPlayers);
+		Utils.copy3d(z.walls, walls, numPlayers, 5, 5);
+		Utils.copy2d(z.lineColors, lineColors, numPlayers, 5);
+		Utils.copy2d(z.lineCounts, lineCounts, numPlayers, 5);
+		for (List<Integer> f : z.floors) {
+			floors.add(new ArrayList<>(f));
+		}
+		tileBox.addAll(z.tileBox);
+		tileBag.addAll(z.tileBag);
+		for (int[] factory : z.factories) {
+			factories.add(factory.clone());
+		}
+		centerTiles.addAll(z.centerTiles);
+		playFirstTile = z.playFirstTile;
+		currentPlayer = z.currentPlayer;
+		turn = z.turn;
+		roundComplete = z.roundComplete;
+		draw = z.draw;
+		gameOver = z.gameOver;
+	}
+
+	private void init(int numPlayers, boolean variantPlay) {
 		this.numPlayers = numPlayers;
 		this.variantPlay = variantPlay;
 		points = new int[numPlayers];
@@ -55,50 +89,11 @@ public class Azul implements Board {
 
 	@Override
 	public Azul duplicate() {
-		Azul z = new Azul(numPlayers, variantPlay);
-		copy1d(points, z.points, numPlayers);
-		copy3d(walls, z.walls, numPlayers, 5, 5);
-		copy2d(lineColors, z.lineColors, numPlayers, 5);
-		copy2d(lineCounts, z.lineCounts, numPlayers, 5);
-		for (List<Integer> f : z.floors) {
-			floors.add(new ArrayList<>(f));
-		}
-		z.tileBox.addAll(tileBox);
-		z.tileBag.addAll(tileBag);
-		for (int[] factory : factories) {
-			z.factories.add(factory.clone());
-		}
-		z.centerTiles.addAll(centerTiles);
-		z.playFirstTile = playFirstTile;
-		z.currentPlayer = currentPlayer;
-		z.turn = turn;
-		z.roundComplete = roundComplete;
-		z.draw = draw;
-		z.gameOver = gameOver;
-		z.initialized = initialized;
-		return z;
-	}
-
-	@SuppressWarnings("SameParameterValue")
-	private void copy3d(final int[][][] src, final int[][][] dest, final int s1, final int s2, final int s3) {
-		for (int i = 0; i < s1; i++) {
-			copy2d(src[i], dest[i], s2, s3);
-		}
-	}
-
-	private void copy2d(final int[][] src, final int[][] dest, final int s1, final int s2) {
-		for (int i = 0; i < s1; i++) {
-			copy1d(src[i], dest[i], s2);
-		}
-	}
-
-	private void copy1d(final Object src, final Object dest, final int s) {
-		//noinspection SuspiciousSystemArraycopy
-		System.arraycopy(src, 0, dest, 0, s);
+		return new Azul(this);
 	}
 
 	@Override // TODO: Cache this? At least for player moves
-	public List<Move> getMoves(final CallLocation location) {
+	public List<Move> getMoves(CallLocation location) {
 		List<Move> moves = new ArrayList<>();
 		if (currentPlayer == -1) {
 			if (!roundComplete) {
@@ -107,7 +102,7 @@ public class Azul implements Board {
 			for (int m = 0; m < EXPANSIONS_PER_NODE; m++) {
 				int numSelections = factoriesPerPlayer[numPlayers] * 4;
 				int[] factorySelections = new int[numSelections];
-				int bagSize = initialized ? tileBag.size() : 100;
+				int bagSize = tileBag.size();
 				for (int i = 0; i < numSelections; i++) {
 					if (bagSize == 0) {
 						bagSize = tileBox.size();
@@ -135,7 +130,7 @@ public class Azul implements Board {
 		return moves;
 	}
 
-	private void addMovesForColors(final List<Move> moves, final List<Integer> colors, final int factory) {
+	private void addMovesForColors(List<Move> moves, List<Integer> colors, int factory) {
 		while (colors.size() > 0) {
 			Integer color = colors.get(0);
 			int count = removeAll(colors, color);
@@ -169,7 +164,7 @@ public class Azul implements Board {
 	 * @param element The element to remove from the list
 	 * @return The number of elements removed
 	 */
-	private int removeAll(final List<Integer> list, final Integer element) {
+	private int removeAll(List<Integer> list, Integer element) {
 		int count = 0;
 		int index;
 		while ((index = list.indexOf(element)) != -1) {
@@ -180,21 +175,12 @@ public class Azul implements Board {
 	}
 
 	@Override
-	public void makeMove(final Move m) {
+	public void makeMove(Move m) {
 		if (m instanceof AzulSetupMove) {
 			if (factories.size() != 0) {
 				throw new IllegalStateException("Cannot make setup move when there are factories left.");
 			}
 			AzulSetupMove setupMove = (AzulSetupMove) m;
-			if (!initialized) {
-				// This is setup for a new game
-				for (int i = 1; i <= 5; i++) {
-					for (int j = 0; j < 20; j++) {
-						tileBag.add(i);
-					}
-				}
-				initialized = true;
-			}
 			fillFactories(setupMove.getFactorySelections());
 			currentPlayer = setupMove.getNextPlayer();
 			roundComplete = false;
@@ -284,9 +270,7 @@ public class Azul implements Board {
 					tileBag.addAll(tileBox);
 					tileBox.clear();
 				}
-				// This rearranging approach selects from the middle but trims from the end for efficiency
-				factory[i] = tileBag.set(factorySelections[s++], tileBag.get(tileBag.size() - 1));
-				tileBag.remove(tileBag.size() - 1);
+				factory[i] = Utils.swapEndAndRemove(tileBag, factorySelections[s++]);
 			}
 			factories.add(factory);
 		}
@@ -335,7 +319,7 @@ public class Azul implements Board {
 	}
 
 	private void endGame() {
-		if (turn >= 100) {
+		if (turn >= MAX_TURNS) {
 			Arrays.fill(scores, 0.5);
 			draw = true;
 		} else {
@@ -490,6 +474,10 @@ public class Azul implements Board {
 		return currentPlayer;
 	}
 
+	int getPlayFirstTile() {
+		return playFirstTile;
+	}
+
 	@Override
 	public int getQuantityOfPlayers() {
 		return numPlayers;
@@ -529,8 +517,8 @@ public class Azul implements Board {
 			for (int r = 0; r < 5; r++) {
 				// print line
 				int spaces = 5 - lineCounts[p][r];
-				System.out.print(repeat("   ", spaces));
-				System.out.print(repeat(asColor2(lineColors[p][r]) + " ", lineCounts[p][r]));
+				System.out.print(Utils.repeat("   ", spaces));
+				System.out.print(Utils.repeat(asColor2(lineColors[p][r]) + " ", lineCounts[p][r]));
 				System.out.print(" ");
 				// print wall
 				for (int c = 0; c < 5; c++) {
@@ -581,7 +569,7 @@ public class Azul implements Board {
 	 * @param col 0-based column
 	 * @return a 1-based color
 	 */
-	private int getWallColor(final int row, final int col) {
+	private int getWallColor(int row, int col) {
 		return (5 + col - row) % 5 + 1;
 	}
 
@@ -592,7 +580,7 @@ public class Azul implements Board {
 	 * @param color 1-based col
 	 * @return a 0-based column
 	 */
-	private int getColumnForColor(final int row, final int color) {
+	private int getColumnForColor(int row, int color) {
 		return (color - 1 + row) % 5;
 	}
 
@@ -603,7 +591,7 @@ public class Azul implements Board {
 	 * @param color 1-based col
 	 * @return a 1-based column number if rhe color is found, 0 otherwise
 	 */
-	private int getColumnWithColor(final int[] line, final int color) {
+	private int getColumnWithColor(int[] line, int color) {
 		for (int i = 0, lineLength = line.length; i < lineLength; i++) {
 			if (line[i] == color) {
 				return i + 1;
@@ -612,19 +600,11 @@ public class Azul implements Board {
 		return 0;
 	}
 
-	private String repeat(final String s, final int count) {
-		StringBuilder sb = new StringBuilder(count);
-		for (int i = 0; i < count; i++) {
-			sb.append(s);
-		}
-		return sb.toString();
-	}
-
-	private String asColor2(final int tile) {
+	private String asColor2(int tile) {
 		return asColor2(tile, false);
 	}
 
-	private String asColor2(final int tile, final boolean lowerCase) {
+	private String asColor2(int tile, boolean lowerCase) {
 		String s;
 		switch (tile) {
 			case 0:
@@ -671,11 +651,19 @@ public class Azul implements Board {
 				}
 			}
 		}
-		return turn >= 1000;
+		return turn >= MAX_TURNS;
 	}
 
 	int getFactoryCount() {
 		return factories.size();
+	}
+
+	List<Integer> getTileBag() {
+		return new ArrayList<>(tileBag);
+	}
+
+	List<Integer> getTileBox() {
+		return new ArrayList<>(tileBox);
 	}
 
 	/**

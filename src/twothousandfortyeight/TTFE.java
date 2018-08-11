@@ -12,30 +12,31 @@ public class TTFE implements Board {
 	public int score;
 	int currentPlayer;
 	private int size;
-	private int maxtile;
+	private int maxTile;
 	int turns;
 
 	public TTFE(int s) {
 		size = s;
 		turns = 0;
-		maxtile = 1;
+		maxTile = 1;
 		score = 0;
 		board = new int[size][size];
 		currentPlayer = 0;
 	}
 
-	@Override
-	public Board duplicate() {
-		TTFE n = new TTFE(size);
-		n.turns = turns;
-		n.maxtile = maxtile;
-		n.score = score;
-		n.currentPlayer = this.currentPlayer;
+	private TTFE(TTFE n) {
+		turns = n.turns;
+		maxTile = n.maxTile;
+		score = n.score;
+		currentPlayer = n.currentPlayer;
 		for (int x = 0; x < size; x++) {
-			System.arraycopy(this.board[x], 0, n.board[x], 0, size);
+			System.arraycopy(n.board[x], 0, board[x], 0, size);
 		}
+	}
 
-		return n;
+	@Override
+	public TTFE duplicate() {
+		return new TTFE(this);
 	}
 
 	@Override
@@ -219,8 +220,8 @@ public class TTFE implements Board {
 		for (int x = 0; x < size; x++) {
 			for (int y = 0; y < size; y++) {
 				// Update max score
-				if (board[x][y] > maxtile) {
-					maxtile = board[x][y];
+				if (board[x][y] > maxTile) {
+					maxTile = board[x][y];
 				}
 			}
 		}
@@ -272,12 +273,12 @@ public class TTFE implements Board {
 
 	private boolean movesLeftVertically() {
 		for (int x = 0; x < size; x++) {
-			int oldval = 0;
+			int oldVal = 0;
 			for (int y = 0; y < size; y++) {
-				if (board[x][y] == oldval || board[x][y] == 0) {
+				if (board[x][y] == oldVal || board[x][y] == 0) {
 					return true;
 				} else {
-					oldval = board[x][y];
+					oldVal = board[x][y];
 				}
 
 			}
@@ -287,12 +288,12 @@ public class TTFE implements Board {
 
 	private boolean movesLeftHorizontally() {
 		for (int y = 0; y < size; y++) {
-			int oldval = 0;
+			int oldVal = 0;
 			for (int x = 0; x < size; x++) {
-				if (board[x][y] == oldval || board[x][y] == 0) {
+				if (board[x][y] == oldVal || board[x][y] == 0) {
 					return true;
 				} else {
-					oldval = board[x][y];
+					oldVal = board[x][y];
 				}
 
 			}

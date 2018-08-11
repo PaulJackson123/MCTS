@@ -19,25 +19,26 @@ public class TicTacToe implements Board {
 		freeSlots = 9;
 	}
 
-	@Override
-	public Board duplicate() {
-		TicTacToe t = new TicTacToe();
-		t.winner = winner;
-		t.currentPlayer = currentPlayer;
-		t.draw = draw;
-		t.freeSlots = freeSlots;
-		t.gameOver = gameOver;
-		t.board = new int[3][3];
+	private TicTacToe(TicTacToe t) {
+		winner = t.winner;
+		currentPlayer = t.currentPlayer;
+		draw = t.draw;
+		freeSlots = t.freeSlots;
+		gameOver = t.gameOver;
+		board = new int[3][3];
 		for (int x = 0; x < 3; x++) {
-			System.arraycopy(board[x], 0, t.board[x], 0, 3);
+			System.arraycopy(t.board[x], 0, board[x], 0, 3);
 		}
-
-		return t;
 	}
 
 	@Override
 	public boolean gameOver() {
 		return gameOver;
+	}
+
+	@Override
+	public TicTacToe duplicate() {
+		return new TicTacToe(this);
 	}
 
 	@Override
@@ -119,9 +120,10 @@ public class TicTacToe implements Board {
 	public void bPrint() {
 		for (int y = 0; y < 3; y++) {
 			for (int x = 0; x < 3; x++) {
-				System.out.print(board[x][y] + " ");
+				int i = board[x][y];
+				System.out.print((i == 0 ? ":" : i - 1) + " ");
 			}
-			System.out.println("");
+			System.out.println();
 		}
 	}
 

@@ -1,6 +1,5 @@
 package ticTacToe;
 
-
 import main.FinalSelectionPolicy;
 import main.MCTS;
 import main.Move;

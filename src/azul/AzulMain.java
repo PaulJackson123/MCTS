@@ -1,19 +1,21 @@
 package azul;
 
-
 import main.FinalSelectionPolicy;
 import main.MCTS;
 import main.Move;
+import main.Utils;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.Arrays;
+import java.util.List;
 
 class AzulMain {
 
 	private static final int RUNS = 0;
 	private static final long MAX_TIME = 20_000L;
+	private static boolean manuallySetFactories = false;
 	private static boolean[] humanPlayer = {true, false};
 
 	public static void main(String[] args) {
@@ -32,7 +34,7 @@ class AzulMain {
 			Azul azul = new Azul(humanPlayer.length, false);
 			while (!azul.gameOver()) {
 				if (azul.getCurrentPlayer() < 0) {
-					move = mcts.selectRandom(azul);
+					move = manuallySetFactories ? setFactories(azul) : mcts.selectRandom(azul);
 				} else if (humanPlayer[azul.getCurrentPlayer()]) {
 					move = getHumanMove(azul);
 				} else {
@@ -58,6 +60,51 @@ class AzulMain {
 			System.out.println(Arrays.toString(scr));
 			System.out.println(Arrays.toString(scores));
 		}
+	}
+
+	private static AzulSetupMove setFactories(Azul azul) {
+		int numFactories = Azul.factoriesPerPlayer[humanPlayer.length];
+		int[] selections = new int[numFactories * 4];
+		int selectionCount = 0;
+		List<Integer> tileBag = azul.getTileBag();
+		List<Integer> tileBox = azul.getTileBox();
+		for (int f = 0; f < numFactories; f++) {
+			for (int i = 0; i < 4; i++) {
+				List<Integer> tiles = i < tileBag.size() ? tileBag : tileBox;
+				int tile = getSelection(tiles, f, i);
+				selections[selectionCount++] = tile;
+			}
+		}
+		int nextPlayer;
+		if (azul.getPlayFirstTile() == -1) {
+			nextPlayer = Azul.RANDOM.nextInt(humanPlayer.length);
+		}
+		else {
+			nextPlayer = azul.getPlayFirstTile();
+		}
+		return new AzulSetupMove(nextPlayer, selections);
+	}
+
+	private static int getSelection(List<Integer> tiles, int f, int i) {
+		while (true) {
+			try {
+				int color = readInt("Enter tile #" + (i + 1) + " color for factory " + (f + 1) + " (1-blue 2-yellow 3-red 4-black 5-teal): ");
+				return getTileNumber(tiles, color);
+			}
+			catch (RuntimeException e) {
+				System.out.println(e.getMessage());
+			}
+		}
+	}
+
+	private static int getTileNumber(List<Integer> tiles, int color) {
+		for (int i = 0; i < tiles.size(); i++) {
+			if (tiles.get(i) == color) {
+				Utils.swapEndAndRemove(tiles, i);
+				return i;
+			}
+		}
+		throw new IllegalArgumentException("Tile bag does not contain tile " + color);
 	}
 
 	private static Move getHumanMove(final Azul azul) {

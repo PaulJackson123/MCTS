@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class ConnectFour implements Board {
 
 	private int[][] board; // The actual game board data
-	public int currentPlayer = 0;
+	int currentPlayer = 0;
 	private int[] freeSlots; // The number of free slots per column
 	private int totalFreeSlots = 6 * 7;
 	private int winner = -1;
@@ -23,20 +23,20 @@ public class ConnectFour implements Board {
 		winner = -1;
 	}
 
-	@Override
-	public Board duplicate() {
-
-		// Copy board data
-		ConnectFour newBoard = new ConnectFour();
+	private ConnectFour(ConnectFour newBoard) {
 		for (int x = 0; x < 7; x++) {
-			System.arraycopy(board[x], 0, newBoard.board[x], 0, 6);
+			System.arraycopy(newBoard.board[x], 0, board[x], 0, 6);
 		}
-		newBoard.currentPlayer = this.currentPlayer;
-		System.arraycopy(freeSlots, 0, newBoard.freeSlots, 0, 7);
-		newBoard.totalFreeSlots = totalFreeSlots;
-		newBoard.winner = winner;
-		newBoard.draw = draw;
-		return newBoard;
+		currentPlayer = newBoard.currentPlayer;
+		System.arraycopy(newBoard.freeSlots, 0, freeSlots, 0, 7);
+		totalFreeSlots = newBoard.totalFreeSlots;
+		winner = newBoard.winner;
+		draw = newBoard.draw;
+	}
+
+	@Override
+	public ConnectFour duplicate() {
+		return new ConnectFour(this);
 	}
 
 	@Override

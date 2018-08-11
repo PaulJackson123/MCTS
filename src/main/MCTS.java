@@ -14,7 +14,7 @@ public class MCTS {
 	private static final Comparator<Node> NODE_PRINT_COMPARATOR = (o1, o2) -> o1.games == o2.games
 			? Double.compare(o1.score[o1.parent.player], o2.score[o2.parent.player])
 			: Double.compare(o1.games, o2.games);
-	private Random random;
+	private final Random random;
 	private boolean rootParallelisation;
 	private double explorationConstant = Math.sqrt(2.0);
 	private double pessimisticBias = 0.0;
@@ -84,7 +84,7 @@ public class MCTS {
 				System.out.println("Perfect play results in scores " + Arrays.toString(rootNode.endScore));
 			}
 			System.out.println("" + i + " trials run.");
-			Node bestNodeFound = robustChild(rootNode);
+			Node bestNodeFound = rootNode.endScore == null ? robustChild(rootNode) : unprunedChild(rootNode);
 			bestMoveFound = bestNodeFound.move;
 			writer.print("Player " + startingBoard.getCurrentPlayer() + " chooses " + bestMoveFound);
 			Node tempBest = bestNodeFound;
@@ -284,6 +284,15 @@ public class MCTS {
 		}
 
 		return bestNodes.get(random.nextInt(bestNodes.size()));
+	}
+
+	private Node unprunedChild(Node n) {
+		for (Node s : n.children) {
+			if (!s.pruned) {
+				return s;
+			}
+		}
+		throw new IllegalStateException("Cannot find unpruned node for perfect play.");
 	}
 
 	/**

@@ -31,11 +31,12 @@ public class Node implements Comparable<Node> {
 	/**
 	 * This creates non-root nodes
 	 */
-	private Node(Board b, Move m, Node parent) {
+	private Node(Board b, Move move, Node parent) {
 		this.parent = parent;
-		move = m;
+		this.move = move;
+		// TODO: It seems really inefficient to make a move only to find who plays next
 		Board tempBoard = b.duplicate();
-		tempBoard.makeMove(m);
+		tempBoard.makeMove(move);
 		player = tempBoard.getCurrentPlayer();
 		score = new double[b.getQuantityOfPlayers()];
 		pess = new double[b.getQuantityOfPlayers()];
@@ -122,15 +123,9 @@ public class Node implements Comparable<Node> {
 	 */
 	void expandNode(Board currentBoard) {
 		List<Move> legalMoves = currentBoard.getMoves(CallLocation.treePolicy);
-//		unvisitedChildren = new ArrayList<>();
-//		for (Move legalMove : legalMoves) {
-//			Node tempState = new Node(currentBoard, legalMove, this);
-//			unvisitedChildren.add(tempState);
-//		}
 		children = new ArrayList<>();
 		for (Move legalMove : legalMoves) {
-			Node tempState = new Node(currentBoard, legalMove, this);
-			children.add(tempState);
+			children.add(new Node(currentBoard, legalMove, this));
 		}
 	}
 
