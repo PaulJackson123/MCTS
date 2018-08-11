@@ -1,0 +1,84 @@
+package dylanean;
+
+import main.FinalSelectionPolicy;
+import main.MCTS;
+import main.Move;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.util.Arrays;
+
+class DCMain {
+
+	private static final int RUNS = 0;
+	private static final long MAX_TIME = 20_000L;
+	private static boolean[] humanPlayer = {true, false};
+
+	public static void main(String[] args) {
+		MCTS mcts = new MCTS();
+		mcts.setExplorationConstant(0.36);
+		mcts.setHeuristicWeight(1.0);
+		mcts.setTimeDisplay(true);
+		Move move;
+		mcts.setOptimisticBias(0.0d);
+		mcts.setPessimisticBias(0.0d);
+		mcts.setMoveSelectionPolicy(FinalSelectionPolicy.robustChild);
+		int[] scores = new int[3];
+
+		DylaneanChess dc = new DylaneanChess();
+		while (!dc.gameOver()) {
+			if (humanPlayer[dc.getCurrentPlayer()]) {
+				move = getHumanMove(dc);
+			} else {
+				dc.bPrint();
+				move = mcts.runMCTS_UCT(dc, RUNS, MAX_TIME, false);
+			}
+			dc.makeMove(move);
+		}
+
+		System.out.println("---");
+		dc.bPrint();
+
+		double[] scr = dc.getScore();
+		if (scr[0] > 0.9) {
+			scores[0]++; // player 1
+		} else if (scr[1] > 0.9) {
+			scores[1]++; // player 2
+		} else {
+			scores[2]++; // draw
+		}
+
+		System.out.println(Arrays.toString(scr));
+		System.out.println(Arrays.toString(scores));
+	}
+
+	private static Move getHumanMove(final DylaneanChess dc) {
+		do {
+			dc.bPrint();
+			System.out.println("Player " + dc.getCurrentPlayer() + "'s turn.");
+			int piece = readInt("Enter piece (1-4): ");
+			int rank = readInt("Enter rank (0-11): ");
+			int file = readInt("Enter file (0-5): ");
+			String error = dc.isSetupMoveLegal(piece, rank, file);
+			if (error == null) {
+				return new DCSetupMove(piece, rank, file);
+			} else {
+				System.out.println(error);
+			}
+		} while (true);
+	}
+
+	private static int readInt(final String message) {
+		int i = -1;
+		while (i == -1) {
+			try {
+				System.out.print(message);
+				LineNumberReader reader = new LineNumberReader(new InputStreamReader(System.in));
+				i = Integer.parseInt(reader.readLine());
+			} catch (NumberFormatException | IOException ignore) {
+			}
+		}
+		return i;
+	}
+}
