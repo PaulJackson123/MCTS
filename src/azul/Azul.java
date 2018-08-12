@@ -13,6 +13,7 @@ class Azul implements Board {
 	private static final double[] WEIGHTS = new double[EXPANSIONS_PER_NODE];
 	static final Random RANDOM = new Random();
 	private static final int MAX_TURNS = 1000;
+	private static final int MAX_TURN_SCORE = 5 + 5 + 2 + 7 + 10;
 	static int[] factoriesPerPlayer = {0, 0, 5, 7, 9};
 
 	static {
@@ -353,40 +354,53 @@ class Azul implements Board {
 		}
 		// Score all players at once
 		for (int player = 0; player < numPlayers; player++) {
-			int[][] wall = walls[player];
-			int[] lineColor = lineColors[player];
-			int[] lineCount = lineCounts[player];
-			int roundScore = 0;
-			for (int row = 0; row < 5; row++) {
-				int color = lineColor[row];
-				int count = lineCount[row];
-				if (count == row + 1) {
-					int col = getColumnForColor(row, color);
-					int horizontalNeighbors = 0;
-					for (int c = col - 1; c >= 0 && wall[row][c] != 0; c--) {
-						horizontalNeighbors++;
-					}
-					for (int c = col + 1; c < 5 && wall[row][c] != 0; c++) {
-						horizontalNeighbors++;
-					}
-					int verticalNeighbors = 0;
-					for (int r = row - 1; r >= 0 && wall[r][col] != 0; r--) {
-						verticalNeighbors++;
-					}
-					for (int r = row + 1; r < 5 && wall[r][col] != 0; r++) {
-						verticalNeighbors++;
-					}
-					if (horizontalNeighbors > 0 && verticalNeighbors > 0) {
-						roundScore += horizontalNeighbors + verticalNeighbors + 2;
-					} else if (horizontalNeighbors > 0) {
-						roundScore += horizontalNeighbors + 1;
-					} else if (verticalNeighbors > 0) {
-						roundScore += verticalNeighbors + 1;
-					} else {
-						roundScore += 1;
-					}
-					// Move one tile to wall
-					wall[row][col] = color;
+			points[player] = points[player] + getRoundScore(player, true);
+		}
+	}
+
+	private int getRoundScore(int player, boolean moveTiles) {
+		int[][] wall;
+		if (moveTiles) {
+			wall = walls[player];
+		}
+		else {
+			wall = new int[5][5];
+			Utils.copy2d(walls[player], wall, 5, 5);
+		}
+		int[] lineColor = lineColors[player];
+		int[] lineCount = lineCounts[player];
+		int roundScore = 0;
+		for (int row = 0; row < 5; row++) {
+			int color = lineColor[row];
+			int count = lineCount[row];
+			if (count == row + 1) {
+				int col = getColumnForColor(row, color);
+				int horizontalNeighbors = 0;
+				for (int c = col - 1; c >= 0 && wall[row][c] != 0; c--) {
+					horizontalNeighbors++;
+				}
+				for (int c = col + 1; c < 5 && wall[row][c] != 0; c++) {
+					horizontalNeighbors++;
+				}
+				int verticalNeighbors = 0;
+				for (int r = row - 1; r >= 0 && wall[r][col] != 0; r--) {
+					verticalNeighbors++;
+				}
+				for (int r = row + 1; r < 5 && wall[r][col] != 0; r++) {
+					verticalNeighbors++;
+				}
+				if (horizontalNeighbors > 0 && verticalNeighbors > 0) {
+					roundScore += horizontalNeighbors + verticalNeighbors + 2;
+				} else if (horizontalNeighbors > 0) {
+					roundScore += horizontalNeighbors + 1;
+				} else if (verticalNeighbors > 0) {
+					roundScore += verticalNeighbors + 1;
+				} else {
+					roundScore += 1;
+				}
+				// Move one tile to wall
+				wall[row][col] = color;
+				if (moveTiles) {
 					// Move remaining tiles to tile box
 					for (int ignore = 1; ignore < count; ignore++) {
 						tileBox.add(color);
@@ -396,62 +410,70 @@ class Azul implements Board {
 					lineCount[row] = 0;
 				}
 			}
-			List<Integer> tiles = floors.get(player);
-			switch (tiles.size()) {
-				case 0:
-					break;
-				case 1:
-					roundScore--;
-					break;
-				case 2:
-					roundScore -= 2;
-					break;
-				case 3:
-					roundScore -= 4;
-					break;
-				case 4:
-					roundScore -= 6;
-					break;
-				case 5:
-					roundScore -= 8;
-					break;
-				default:
-					roundScore -= (tiles.size() - 5) * 3 + 8;
-					break;
-			}
-			for (Integer x : tiles) {
+		}
+		List<Integer> floor = floors.get(player);
+		switch (floor.size()) {
+			case 0:
+				break;
+			case 1:
+				roundScore--;
+				break;
+			case 2:
+				roundScore -= 2;
+				break;
+			case 3:
+				roundScore -= 4;
+				break;
+			case 4:
+				roundScore -= 6;
+				break;
+			case 5:
+				roundScore -= 8;
+				break;
+			default:
+				roundScore -= (floor.size() - 5) * 3 + 8;
+				break;
+		}
+		if (moveTiles) {
+			for (Integer x : floor) {
 				if (x != 0) {
 					tileBox.add(x);
 				}
 			}
-			tiles.clear();
-
-			points[player] = points[player] + roundScore > 0 ? points[player] + roundScore : 0;
+			floor.clear();
 		}
+		if (roundScore < 0) {
+			roundScore = roundScore < 0 - points[player] ? 0 - points[player] : roundScore;
+		}
+		return roundScore;
 	}
 
 	// Add bonuses for completed rows, columns and colors
 	private void scoreGame() {
 		for (int player = 0; player < numPlayers; player++) {
-			int[][] wall = walls[player];
-			int bonuses = 0;
-			int tilesInRow[] = new int[5];
-			int tilesInCol[] = new int[5];
-			int colorCount[] = new int[5];
-			for (int row = 0; row < 5; row++) {
-				for (int col = 0; col < 5; col++) {
-					if (wall[row][col] > 0) {
-						tilesInRow[row]++;
-						tilesInCol[col]++;
-						colorCount[wall[row][col] - 1]++;
-					}
-				}
-			}
-			bonuses += getMatchCount(tilesInRow, 5) * 2;
-			bonuses += getMatchCount(tilesInCol, 5) * 7;
-			bonuses += getMatchCount(colorCount, 5) * 10;
+			int bonuses = getBonuses(walls[player]);
 			points[player] += bonuses;
 		}
+	}
+
+	private int getBonuses(int[][] wall) {
+		int bonuses = 0;
+		int tilesInRow[] = new int[5];
+		int tilesInCol[] = new int[5];
+		int colorCount[] = new int[5];
+		for (int row = 0; row < 5; row++) {
+			for (int col = 0; col < 5; col++) {
+				if (wall[row][col] > 0) {
+					tilesInRow[row]++;
+					tilesInCol[col]++;
+					colorCount[wall[row][col] - 1]++;
+				}
+			}
+		}
+		bonuses += getMatchCount(tilesInRow, 5) * 2;
+		bonuses += getMatchCount(tilesInCol, 5) * 7;
+		bonuses += getMatchCount(colorCount, 5) * 10;
+		return bonuses;
 	}
 
 	private long getMatchCount(int[] array, int i) {
@@ -669,7 +691,7 @@ class Azul implements Board {
 	/**
 	 * Scores board. Finds lead. Returns 1.0 for infinite lead, -1.0 for infinite trail, 0.0 for tied for lead.
 	 */
-	double getHeuristic(AzulPlayerMove move, double expCoef) {
+	double getHeuristic(AzulPlayerMove move) {
 		Double h = null;
 		if (heuristics == null) {
 			heuristics = new HashMap<>();
@@ -677,43 +699,21 @@ class Azul implements Board {
 			h = heuristics.get(move);
 		}
 		if (h == null) {
-			heuristics.put(move, h = calculateHeuristic(move, expCoef));
+			heuristics.put(move, h = calculateHeuristic(move));
 		}
 		return h;
 	}
 
-	private Double calculateHeuristic(AzulPlayerMove move, double expCoef) {
+	private Double calculateHeuristic(AzulPlayerMove move) {
 		Azul b = duplicate();
+		int base = b.points[currentPlayer] +
+				b.getRoundScore(currentPlayer, false) +
+				b.getBonuses(b.walls[currentPlayer]);
 		b.makeMove(move);
-		if (!b.isEndOfRound()) {
-			b.scoreRound();
-		}
-		if (!b.isEndOfGame()) {
-			b.scoreGame();
-		}
-		int best = 0; // TODO is -1 better init?
-		int next = 0;
-		boolean draw = true;
-		for (int point : b.points) {
-			if (point > best) {
-				next = best;
-				best = point;
-				draw = false;
-			} else if (point == best) {
-				draw = true;
-			}
-		}
-		int point = b.points[currentPlayer];
-		int diff;
-
-		if (point != best) {
-			diff = point - best;
-		} else if (draw) {
-			diff = 0;
-		} else {
-			diff = point - next;
-		}
-		// Logistic function - range [0, 1.0]
-		return 1.0d / (1 + Math.exp((0 - diff) * expCoef));
+		int score = b.points[currentPlayer] +
+				(b.isEndOfRound() ? 0 : b.getRoundScore(currentPlayer, false)) +
+				(b.isEndOfGame() ? 0 : b.getBonuses(walls[currentPlayer]));
+		int delta = score - base;
+		return ((double) delta) / MAX_TURN_SCORE;
 	}
 }

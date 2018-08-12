@@ -14,6 +14,6 @@ public class AzulHeuristicFunction implements HeuristicFunction {
 
 	@Override
 	public double h(Board board, Move move) {
-		return ((Azul) board).getHeuristic((AzulPlayerMove) move, expCoef);
+		return ((Azul) board).getHeuristic((AzulPlayerMove) move);
 	}
 }

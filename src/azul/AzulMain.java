@@ -14,9 +14,9 @@ import java.util.List;
 class AzulMain {
 
 	private static final int RUNS = 0;
-	private static final long MAX_TIME = 20_000L;
-	private static boolean manuallySetFactories = false;
-	private static boolean[] humanPlayer = {true, false};
+	private static final long MAX_TIME = 60_000L;
+	private static boolean manuallySetFactories = true;
+	private static boolean[] humanPlayer = {true, false, true};
 
 	public static void main(String[] args) {
 		MCTS mcts = new MCTS();
@@ -70,14 +70,13 @@ class AzulMain {
 		List<Integer> tileBox = azul.getTileBox();
 		for (int f = 0; f < numFactories; f++) {
 			for (int i = 0; i < 4; i++) {
-				List<Integer> tiles = i < tileBag.size() ? tileBag : tileBox;
-				int tile = getSelection(tiles, f, i);
+				int tile = getSelection(tileBag, tileBox, f, i);
 				selections[selectionCount++] = tile;
 			}
 		}
 		int nextPlayer;
 		if (azul.getPlayFirstTile() == -1) {
-			nextPlayer = Azul.RANDOM.nextInt(humanPlayer.length);
+			nextPlayer = readInt("Who goes first (0-" + (humanPlayer.length - 1) + "): ");
 		}
 		else {
 			nextPlayer = azul.getPlayFirstTile();
@@ -85,11 +84,11 @@ class AzulMain {
 		return new AzulSetupMove(nextPlayer, selections);
 	}
 
-	private static int getSelection(List<Integer> tiles, int f, int i) {
+	private static int getSelection(List<Integer> tileBag, List<Integer> tileBox, int factory, int i) {
 		while (true) {
 			try {
-				int color = readInt("Enter tile #" + (i + 1) + " color for factory " + (f + 1) + " (1-blue 2-yellow 3-red 4-black 5-teal): ");
-				return getTileNumber(tiles, color);
+				int color = readInt("Enter tile #" + (i + 1) + " color for factory " + (factory + 1) + " (1-blue 2-yellow 3-red 4-black 5-teal): ");
+				return getTileNumber(tileBag, tileBox, color);
 			}
 			catch (RuntimeException e) {
 				System.out.println(e.getMessage());
@@ -97,7 +96,8 @@ class AzulMain {
 		}
 	}
 
-	private static int getTileNumber(List<Integer> tiles, int color) {
+	static int getTileNumber(List<Integer> tileBag, List<Integer> tileBox, int color) {
+		List<Integer> tiles = tileBag.isEmpty() ? tileBox : tileBag;
 		for (int i = 0; i < tiles.size(); i++) {
 			if (tiles.get(i) == color) {
 				Utils.swapEndAndRemove(tiles, i);
