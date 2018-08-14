@@ -4,35 +4,35 @@ import main.MCTS;
 
 import java.util.List;
 
-// Baseline run
-//	Making choice for player: 0
-//	Selected move: AzulPlayerMove{factory=5, color=2, line=2, count=2}
-//	Thinking time in milliseconds: 17081
-//	Time = 17081
+// byte storage
 //	Making choice for player: 0
 //	Selected move: AzulPlayerMove{factory=7, color=2, line=2, count=2}
-//	Thinking time in milliseconds: 15843
-//	Time = 15843
+//	Thinking time in milliseconds: 16485
+//	Time = 16486
 //	Making choice for player: 0
-//	Selected move: AzulPlayerMove{factory=4, color=1, line=1, count=1}
-//	Thinking time in milliseconds: 15776
-//	Time = 15776
+//	Selected move: AzulPlayerMove{factory=5, color=5, line=2, count=2}
+//	Thinking time in milliseconds: 15506
+//	Time = 15506
 //	Making choice for player: 0
-//	Selected move: AzulPlayerMove{factory=1, color=5, line=2, count=2}
-//	Thinking time in milliseconds: 15569
-//	Time = 15570
+//	Selected move: AzulPlayerMove{factory=5, color=5, line=2, count=2}
+//	Thinking time in milliseconds: 15407
+//	Time = 15407
+//	Making choice for player: 0
+//	Selected move: AzulPlayerMove{factory=5, color=5, line=2, count=2}
+//	Thinking time in milliseconds: 15327
+//	Time = 15327
 //	Making choice for player: 0
 //	Selected move: AzulPlayerMove{factory=7, color=2, line=2, count=2}
-//	Thinking time in milliseconds: 15542
-//	Time = 15542
+//	Thinking time in milliseconds: 15476
+//	Time = 15476
 public class AzulPerfTest {
 
 	private static final int BAG_SIZE = 7 * 4;
 
 	public static void main(String[] args) {
 		Azul azul = new Azul(3, false);
-		int[] colors = new int[] {5, 5, 3, 1, 5, 5, 3, 1, 5, 1, 4, 2, 3, 3, 1, 2, 2, 2, 5, 5, 5, 5, 4, 1, 1, 1, 2, 2};
-		int[] selections = getSelections(azul, colors);
+		byte[] colors = new byte[] {5, 5, 3, 1, 5, 5, 3, 1, 5, 1, 4, 2, 3, 3, 1, 2, 2, 2, 5, 5, 5, 5, 4, 1, 1, 1, 2, 2};
+		byte[] selections = getSelections(azul, colors);
 		azul.makeMove(new AzulSetupMove(0, selections));
 		MCTS mcts = AzulMain.newMcts();
 		runIteration(azul, mcts);
@@ -48,10 +48,10 @@ public class AzulPerfTest {
 		System.out.println("Time = " + (System.currentTimeMillis() - startTime));
 	}
 
-	private static int[] getSelections(Azul azul, int[] colors) {
-		int[] selections = new int[BAG_SIZE];
-		List<Integer> tileBag = azul.getTileBag();
-		List<Integer> tileBox = azul.getTileBox();
+	private static byte[] getSelections(Azul azul, byte[] colors) {
+		byte[] selections = new byte[BAG_SIZE];
+		List<Byte> tileBag = azul.getTileBag();
+		List<Byte> tileBox = azul.getTileBox();
 		for (int i = 0; i < BAG_SIZE; i++) {
 			selections[i] = AzulMain.getTileNumber(tileBag, tileBox, colors[i]);
 		}

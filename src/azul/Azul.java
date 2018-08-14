@@ -21,34 +21,38 @@ class Azul implements Board {
 	}
 
 	// Colors are: 0-null 1-blue 2-yellow 3-red 4-black 5-teal
-	private int numPlayers;
+	private byte numPlayers;
 	private boolean variantPlay;
 	private int[] points;
 	private double[] scores;
-	private int[][][] walls; // [player][row][column]
-	private int[][] lineColors; // [player][line]
-	private int[][] lineCounts; // [player][line] numberPlaced
-	private List<List<Integer>> floors; // [player] tile colors, zero for playFirstTile
-	private List<int[]> factories = new ArrayList<>(); // each List element is a factory holding 4-element array of colors
-	private List<Integer> centerTiles = new ArrayList<>();
-	private List<Integer> tileBag = new ArrayList<>();
-	private List<Integer> tileBox = new ArrayList<>();
-	private int playFirstTile = -1; // 0-based player number - -1 means play-first tile is still in center of board
-	private int currentPlayer = -1; // 0-based player number - -1 is chance player that sets board between rounds
+	private byte[][][] walls; // [player][row][column]
+	private byte[][] lineColors; // [player][line]
+	private byte[][] lineCounts; // [player][line] numberPlaced
+	private List<List<Byte>> floors; // [player] tile colors, zero for playFirstTile
+	private List<byte[]> factories = new ArrayList<>(); // each List element is a factory holding 4-element array of colors
+	private List<Byte> centerTiles = new ArrayList<>();
+	private List<Byte> tileBag = new ArrayList<>();
+	private List<Byte> tileBox = new ArrayList<>();
+	private byte playFirstTile = -1; // 0-based player number - -1 means play-first tile is still in center of board
+	private byte currentPlayer = -1; // 0-based player number - -1 is chance player that sets board between rounds
 	private int turn = 1; // 1-based turn used to detect stalemate where game cannot end
 	private boolean roundComplete = true;
 	private boolean draw;
 	private boolean gameOver;
 	private Map<AzulPlayerMove, Double> heuristics;
 
-	public Azul(int numPlayers, boolean variantPlay) {
+	public Azul(byte numPlayers, boolean variantPlay) {
 		init(numPlayers, variantPlay);
 		// This is setup for a new game
-		for (int i = 1; i <= 5; i++) {
+		for (byte i = 1; i <= 5; i++) {
 			for (int j = 0; j < 20; j++) {
 				tileBag.add(i);
 			}
 		}
+	}
+
+	public Azul(int numPlayers, boolean variantPlay) {
+		this((byte) numPlayers, variantPlay);
 	}
 
 	private Azul(Azul z) {
@@ -57,12 +61,12 @@ class Azul implements Board {
 		Utils.copy3d(z.walls, walls, numPlayers, 5, 5);
 		Utils.copy2d(z.lineColors, lineColors, numPlayers, 5);
 		Utils.copy2d(z.lineCounts, lineCounts, numPlayers, 5);
-		for (List<Integer> f : z.floors) {
+		for (List<Byte> f : z.floors) {
 			floors.add(new ArrayList<>(f));
 		}
 		tileBox.addAll(z.tileBox);
 		tileBag.addAll(z.tileBag);
-		for (int[] factory : z.factories) {
+		for (byte[] factory : z.factories) {
 			factories.add(factory.clone());
 		}
 		centerTiles.addAll(z.centerTiles);
@@ -74,14 +78,14 @@ class Azul implements Board {
 		gameOver = z.gameOver;
 	}
 
-	private void init(int numPlayers, boolean variantPlay) {
+	private void init(byte numPlayers, boolean variantPlay) {
 		this.numPlayers = numPlayers;
 		this.variantPlay = variantPlay;
 		points = new int[numPlayers];
 		scores = new double[numPlayers];
-		walls = new int[numPlayers][5][5];
-		lineColors = new int[numPlayers][5];
-		lineCounts = new int[numPlayers][5];
+		walls = new byte[numPlayers][5][5];
+		lineColors = new byte[numPlayers][5];
+		lineCounts = new byte[numPlayers][5];
 		floors = new ArrayList<>(2);
 		for (int x = 0; x < numPlayers; x++) {
 			floors.add(new ArrayList<>());
@@ -102,49 +106,49 @@ class Azul implements Board {
 			}
 			for (int m = 0; m < EXPANSIONS_PER_NODE; m++) {
 				int numSelections = factoriesPerPlayer[numPlayers] * 4;
-				int[] factorySelections = new int[numSelections];
+				byte[] factorySelections = new byte[numSelections];
 				int bagSize = tileBag.size();
 				for (int i = 0; i < numSelections; i++) {
 					if (bagSize == 0) {
 						bagSize = tileBox.size();
 					}
-					factorySelections[i] = RANDOM.nextInt(bagSize--);
+					factorySelections[i] = (byte) RANDOM.nextInt(bagSize--);
 				}
-				int nextPlayer = playFirstTile == -1 ? RANDOM.nextInt(numPlayers) : playFirstTile;
+				byte nextPlayer = playFirstTile == -1 ? (byte) RANDOM.nextInt(numPlayers) : playFirstTile;
 				moves.add(new AzulSetupMove(nextPlayer, factorySelections));
 			}
 		} else {
 			// Temp structure for holding tiles for a factory. Used to eliminate duplicate moves.
-			List<Integer> colors = new ArrayList<>(4);
+			List<Byte> colors = new ArrayList<>(4);
 			for (int factory = 0; factory < factories.size(); factory++) {
 				colors.clear();
-				for (int i : factories.get(factory)) {
+				for (byte i : factories.get(factory)) {
 					colors.add(i);
 				}
-				addMovesForColors(moves, colors, factory + 1);
+				addMovesForColors(moves, colors, (byte) (factory + 1));
 			}
 			// Take from center
 			colors.clear();
 			colors.addAll(centerTiles);
-			addMovesForColors(moves, colors, 0);
+			addMovesForColors(moves, colors, (byte) 0);
 		}
 		return moves;
 	}
 
-	private void addMovesForColors(List<Move> moves, List<Integer> colors, int factory) {
+	private void addMovesForColors(List<Move> moves, List<Byte> colors, byte factory) {
 		while (colors.size() > 0) {
-			Integer color = colors.get(0);
-			int count = removeAll(colors, color);
-			for (int row = 0; row < 5; row++) {
-				int lineColor = lineColors[currentPlayer][row];
-				int lineCount = lineCounts[currentPlayer][row];
+			byte color = colors.get(0);
+			byte count = removeAll(colors, color);
+			for (byte row = 0; row < 5; row++) {
+				byte lineColor = lineColors[currentPlayer][row];
+				byte lineCount = lineCounts[currentPlayer][row];
 				if (lineCount < row + 1 && // can't add tile to full pattern line
 						(lineColor == 0 || lineColor == color) && // can't mix colors on pattern line
 						getColumnWithColor(walls[currentPlayer][row], color) == 0 // can't place a tile on a row that already has that color
 						) {
 					String moveLegal = isMoveLegal(factory, color, row + 1, count);
 					if (moveLegal == null) {
-						moves.add(new AzulPlayerMove(factory, color, row + 1, count));
+						moves.add(new AzulPlayerMove(factory, color, (byte) (row + 1), count));
 					} else {
 						throw new IllegalStateException("shouldn't" + moveLegal);
 					}
@@ -153,7 +157,7 @@ class Azul implements Board {
 			}
 			// Floor it
 			if (isMoveLegal(factory, color, 0, count) == null) {
-				moves.add(new AzulPlayerMove(factory, color, 0, count));
+				moves.add(new AzulPlayerMove(factory, color, (byte) 0, count));
 			}
 		}
 	}
@@ -165,8 +169,8 @@ class Azul implements Board {
 	 * @param element The element to remove from the list
 	 * @return The number of elements removed
 	 */
-	private int removeAll(List<Integer> list, Integer element) {
-		int count = 0;
+	private byte removeAll(List<Byte> list, Byte element) {
+		byte count = 0;
 		int index;
 		while ((index = list.indexOf(element)) != -1) {
 			list.remove(index);
@@ -188,17 +192,17 @@ class Azul implements Board {
 			playFirstTile = -1;
 		} else {
 			AzulPlayerMove playerMove = (AzulPlayerMove) m;
-			int factory = playerMove.getFactory();
-			int color = playerMove.getColor();
-			int line = playerMove.getLine();
-			int tilesCount = 0;
+			byte factory = playerMove.getFactory();
+			byte color = playerMove.getColor();
+			byte line = playerMove.getLine();
+			byte tilesCount = 0;
 			// Where is tile taken from
 			if (factory == 0) {
 				if (playFirstTile == -1) {
 					playFirstTile = currentPlayer;
-					floors.get(currentPlayer).add(0);
+					floors.get(currentPlayer).add((byte) 0);
 				}
-				Iterator<Integer> iterator = centerTiles.iterator();
+				Iterator<Byte> iterator = centerTiles.iterator();
 				while (iterator.hasNext()) {
 					if (iterator.next() == color) {
 						iterator.remove();
@@ -206,7 +210,7 @@ class Azul implements Board {
 					}
 				}
 			} else {
-				for (int tile : factories.remove(factory - 1)) {
+				for (byte tile : factories.remove(factory - 1)) {
 					if (tile == color) {
 						tilesCount++;
 					} else {
@@ -224,12 +228,12 @@ class Azul implements Board {
 				floor(color, tilesCount);
 			} else {
 				lineColors[currentPlayer][line - 1] = color;
-				int total = lineCounts[currentPlayer][line - 1] + tilesCount;
+				byte total = (byte) (lineCounts[currentPlayer][line - 1] + tilesCount);
 				if (total <= line) {
 					lineCounts[currentPlayer][line - 1] += tilesCount;
 				} else {
 					lineCounts[currentPlayer][line - 1] = line;
-					floor(color, total - line);
+					floor(color, (byte) (total - line));
 				}
 			}
 			if (isEndOfRound()) {
@@ -240,29 +244,29 @@ class Azul implements Board {
 					endGame();
 				}
 			} else {
-				currentPlayer = (currentPlayer + 1) % numPlayers;
+				currentPlayer = (byte) ((currentPlayer + 1) % numPlayers);
 			}
 			turn++;
 		}
 	}
 
-	private void floor(int color, int count) {
+	private void floor(byte color, byte count) {
 		for (int x = 0; x < count; x++) {
 			floors.get(currentPlayer).add(color);
 		}
 	}
 
-	private void fillFactories(int[] factorySelections) {
+	private void fillFactories(byte[] factorySelections) {
 		int s = 0;
 		for (int f = 0; f < factoriesPerPlayer[numPlayers]; f++) {
-			int[] factory = new int[4];
+			byte[] factory = new byte[4];
 			for (int i = 0; i < 4; i++) {
 				if (tileBag.isEmpty()) {
 					if (tileBox.isEmpty()) {
 						// In the rare case that you run out of tiles again while there are none left in the lid,
 						// start the new round as usual even though not all Factory displays are properly filled.
 						if (i > 0) {
-							int[] partial = new int[i];
+							byte[] partial = new byte[i];
 							System.arraycopy(factory, 0, partial, 0, i);
 							factories.add(partial);
 						}
@@ -359,20 +363,20 @@ class Azul implements Board {
 	}
 
 	private int getRoundScore(int player, boolean moveTiles) {
-		int[][] wall;
+		byte[][] wall;
 		if (moveTiles) {
 			wall = walls[player];
 		}
 		else {
-			wall = new int[5][5];
+			wall = new byte[5][5];
 			Utils.copy2d(walls[player], wall, 5, 5);
 		}
-		int[] lineColor = lineColors[player];
-		int[] lineCount = lineCounts[player];
+		byte[] lineColor = lineColors[player];
+		byte[] lineCount = lineCounts[player];
 		int roundScore = 0;
 		for (int row = 0; row < 5; row++) {
-			int color = lineColor[row];
-			int count = lineCount[row];
+			byte color = lineColor[row];
+			byte count = lineCount[row];
 			if (count == row + 1) {
 				int col = getColumnForColor(row, color);
 				int horizontalNeighbors = 0;
@@ -411,7 +415,7 @@ class Azul implements Board {
 				}
 			}
 		}
-		List<Integer> floor = floors.get(player);
+		List<Byte> floor = floors.get(player);
 		switch (floor.size()) {
 			case 0:
 				break;
@@ -435,7 +439,7 @@ class Azul implements Board {
 				break;
 		}
 		if (moveTiles) {
-			for (Integer x : floor) {
+			for (Byte x : floor) {
 				if (x != 0) {
 					tileBox.add(x);
 				}
@@ -456,11 +460,11 @@ class Azul implements Board {
 		}
 	}
 
-	private int getBonuses(int[][] wall) {
+	private int getBonuses(byte[][] wall) {
 		int bonuses = 0;
-		int tilesInRow[] = new int[5];
-		int tilesInCol[] = new int[5];
-		int colorCount[] = new int[5];
+		byte tilesInRow[] = new byte[5];
+		byte tilesInCol[] = new byte[5];
+		byte colorCount[] = new byte[5];
 		for (int row = 0; row < 5; row++) {
 			for (int col = 0; col < 5; col++) {
 				if (wall[row][col] > 0) {
@@ -476,7 +480,7 @@ class Azul implements Board {
 		return bonuses;
 	}
 
-	private long getMatchCount(int[] array, int i) {
+	private long getMatchCount(byte[] array, int i) {
 		long count = 0L;
 		for (int c : array) {
 			if (c == i) {
@@ -496,7 +500,7 @@ class Azul implements Board {
 		return currentPlayer;
 	}
 
-	int getPlayFirstTile() {
+	byte getPlayFirstTile() {
 		return playFirstTile;
 	}
 
@@ -522,10 +526,10 @@ class Azul implements Board {
 	@Override
 	public void bPrint() {
 		System.out.println("Factories");
-		List<Integer> tmpCenter = centerTiles;
+		List<Byte> tmpCenter = centerTiles;
 		if (playFirstTile == -1) {
 			tmpCenter = new ArrayList<>();
-			tmpCenter.add(0);
+			tmpCenter.add((byte) 0);
 			tmpCenter.addAll(centerTiles);
 		}
 		printTiles(0, sort(tmpCenter));
@@ -554,14 +558,14 @@ class Azul implements Board {
 				System.out.println();
 			}
 			System.out.print("Floor: ");
-			for (Integer t : floors.get(p)) {
+			for (Byte t : floors.get(p)) {
 				System.out.print(asColor2(t) + " ");
 			}
 			System.out.println();
 		}
 	}
 
-	private void printTiles(int i, int[] tiles) {
+	private void printTiles(int i, byte[] tiles) {
 		System.out.print(i + ") ");
 		for (int tile : tiles) {
 			System.out.print(asColor2(tile));
@@ -570,16 +574,16 @@ class Azul implements Board {
 		System.out.println();
 	}
 
-	private int[] sort(List<Integer> tiles) {
-		int[] temp = new int[tiles.size()];
+	private byte[] sort(List<Byte> tiles) {
+		byte[] temp = new byte[tiles.size()];
 		for (int i = 0; i < tiles.size(); i++) {
 			temp[i] = tiles.get(i);
 		}
 		return sort(temp);
 	}
 
-	private int[] sort(int[] tiles) {
-		int[] temp = tiles.clone();
+	private byte[] sort(byte[] tiles) {
+		byte[] temp = tiles.clone();
 		Arrays.sort(temp);
 		return temp;
 	}
@@ -613,7 +617,7 @@ class Azul implements Board {
 	 * @param color 1-based col
 	 * @return a 1-based column number if rhe color is found, 0 otherwise
 	 */
-	private int getColumnWithColor(int[] line, int color) {
+	private int getColumnWithColor(byte[] line, int color) {
 		for (int i = 0, lineLength = line.length; i < lineLength; i++) {
 			if (line[i] == color) {
 				return i + 1;
@@ -659,8 +663,8 @@ class Azul implements Board {
 	}
 
 	private boolean isEndOfGame() {
-		for (int[][] wall : walls) {
-			for (int[] line : wall) {
+		for (byte[][] wall : walls) {
+			for (byte[] line : wall) {
 				boolean b = true;
 				for (int t : line) {
 					if (t == 0) {
@@ -680,11 +684,11 @@ class Azul implements Board {
 		return factories.size();
 	}
 
-	List<Integer> getTileBag() {
+	List<Byte> getTileBag() {
 		return new ArrayList<>(tileBag);
 	}
 
-	List<Integer> getTileBox() {
+	List<Byte> getTileBox() {
 		return new ArrayList<>(tileBox);
 	}
 

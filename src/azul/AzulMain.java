@@ -20,7 +20,7 @@ import java.util.concurrent.Future;
 class AzulMain {
 
 	private static final int MAX_RUNS = 0;
-	private static final long MAX_TIME = 20_000L;
+	private static final long MAX_TIME = 10_000L;
 	private static final boolean MANUALLY_SET_FACTORIES = false;
 	private static boolean[] humanPlayer = {true, false};
 	private static ExecutorService executorService = Executors.newFixedThreadPool(1);
@@ -106,19 +106,19 @@ class AzulMain {
 
 	private static AzulSetupMove setFactories(Azul azul) {
 		int numFactories = Azul.factoriesPerPlayer[humanPlayer.length];
-		int[] selections = new int[numFactories * 4];
+		byte[] selections = new byte[numFactories * 4];
 		int selectionCount = 0;
-		List<Integer> tileBag = azul.getTileBag();
-		List<Integer> tileBox = azul.getTileBox();
-		for (int f = 0; f < numFactories; f++) {
-			for (int i = 0; i < 4; i++) {
-				int tile = getSelection(tileBag, tileBox, f, i);
+		List<Byte> tileBag = azul.getTileBag();
+		List<Byte> tileBox = azul.getTileBox();
+		for (byte f = 0; f < numFactories; f++) {
+			for (byte i = 0; i < 4; i++) {
+				byte tile = getSelection(tileBag, tileBox, f, i);
 				selections[selectionCount++] = tile;
 			}
 		}
-		int nextPlayer;
+		byte nextPlayer;
 		if (azul.getPlayFirstTile() == -1) {
-			nextPlayer = readInt("Who goes first (0-" + (humanPlayer.length - 1) + "): ");
+			nextPlayer = (byte) readInt("Who goes first (0-" + (humanPlayer.length - 1) + "): ");
 		}
 		else {
 			nextPlayer = azul.getPlayFirstTile();
@@ -126,10 +126,10 @@ class AzulMain {
 		return new AzulSetupMove(nextPlayer, selections);
 	}
 
-	private static int getSelection(List<Integer> tileBag, List<Integer> tileBox, int factory, int i) {
+	private static byte getSelection(List<Byte> tileBag, List<Byte> tileBox, byte factory, byte i) {
 		while (true) {
 			try {
-				int color = readInt("Enter tile #" + (i + 1) + " color for factory " + (factory + 1) + " (1-blue 2-yellow 3-red 4-black 5-teal): ");
+				byte color = (byte) readInt("Enter tile #" + (i + 1) + " color for factory " + (factory + 1) + " (1-blue 2-yellow 3-red 4-black 5-teal): ");
 				return getTileNumber(tileBag, tileBox, color);
 			}
 			catch (RuntimeException e) {
@@ -138,9 +138,9 @@ class AzulMain {
 		}
 	}
 
-	static int getTileNumber(List<Integer> tileBag, List<Integer> tileBox, int color) {
-		List<Integer> tiles = tileBag.isEmpty() ? tileBox : tileBag;
-		for (int i = 0; i < tiles.size(); i++) {
+	static byte getTileNumber(List<Byte> tileBag, List<Byte> tileBox, byte color) {
+		List<Byte> tiles = tileBag.isEmpty() ? tileBox : tileBag;
+		for (byte i = 0; i < tiles.size(); i++) {
 			if (tiles.get(i) == color) {
 				Utils.swapEndAndRemove(tiles, i);
 				return i;

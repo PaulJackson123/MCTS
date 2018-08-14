@@ -6,42 +6,45 @@ class AzulPlayerMove implements Move {
 	/**
 	 * Source factory. 0 = center area, 1 - n = factory number
 	 */
-	private final int factory;
-	private final int color;
+	private final byte factory;
+	private final byte color;
 
 	/**
 	 * Target line. 0 = floor, 1 - 5 = line number
 	 */
-	private final int line;
+	private final byte line;
 
 	/**
 	 * Number of tiles selected - to aid toString()
 	 */
-	private final int count;
+	private final byte count;
 
 	// TODO: How do we deal with tile placement during endOfRound in variant play?
 
 	AzulPlayerMove(int factory, int color, int line, int count) {
+		this.factory = (byte) factory;
+		this.color = (byte) color;
+		this.line = (byte) line;
+		this.count = (byte) count;
+	}
+
+	AzulPlayerMove(byte factory, byte color, byte line, byte count) {
 		this.factory = factory;
 		this.color = color;
 		this.line = line;
 		this.count = count;
 	}
 
-	int getFactory() {
+	byte getFactory() {
 		return factory;
 	}
 
-	int getColor() {
+	byte getColor() {
 		return color;
 	}
 
-	int getLine() {
+	byte getLine() {
 		return line;
-	}
-
-	int getCount() {
-		return count;
 	}
 
 	@Override

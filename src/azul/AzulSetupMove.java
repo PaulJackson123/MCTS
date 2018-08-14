@@ -3,25 +3,30 @@ package azul;
 import main.Move;
 
 class AzulSetupMove implements Move {
-	private final int nextPlayer;
+	private final byte nextPlayer;
 
-	private final int[] factorySelections;
+	private final byte[] factorySelections;
 
-	public AzulSetupMove(final int nextPlayer, final int[] factorySelections) {
+	AzulSetupMove(int nextPlayer, byte[] factorySelections) {
+		this.nextPlayer = (byte) nextPlayer;
+		this.factorySelections = factorySelections;
+	}
+
+	AzulSetupMove(byte nextPlayer, byte[] factorySelections) {
 		this.nextPlayer = nextPlayer;
 		this.factorySelections = factorySelections;
 	}
 
-	public int getNextPlayer() {
+	byte getNextPlayer() {
 		return nextPlayer;
 	}
 
-	public int[] getFactorySelections() {
+	byte[] getFactorySelections() {
 		return factorySelections;
 	}
 
 	@Override
-	public int compareTo(final Move o) {
+	public int compareTo(Move o) {
 		return 0;
 	}
 }

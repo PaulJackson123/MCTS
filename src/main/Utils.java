@@ -36,6 +36,17 @@ public class Utils {
 		}
 	}
 
+	public static void copy2d(byte[][] src, byte[][] dest, int s1, int s2) {
+		for (int i = 0; i < s1; i++) {
+			copy1d(src[i], dest[i], s2);
+		}
+	}
+
+	public static void copy3d(byte[][][] src, byte[][][] dest, int s1, int s2, int s3) {
+		for (int i = 0; i < s1; i++) {
+			copy2d(src[i], dest[i], s2, s3);
+		}
+	}
 	public static String repeat(String s, int count) {
 		StringBuilder sb = new StringBuilder(count);
 		for (int i = 0; i < count; i++) {

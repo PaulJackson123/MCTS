@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Node implements Comparable<Node> {
 	public double[] score;
-	public double games; // TODO: Why not int?
+	public double games; // double outperforms int slightly
 	public Move move;
 	public ArrayList<Node> children;
 	public Node parent;
