@@ -1,6 +1,5 @@
 package ticTacToe;
 
-import main.FinalSelectionPolicy;
 import main.MCTS;
 import main.Move;
 
@@ -18,9 +17,6 @@ class TTTMain {
 		mcts.setExplorationConstant(0.2);
 		mcts.setTimeDisplay(true);
 		Move move;
-		mcts.setOptimisticBias(0.0d);
-		mcts.setPessimisticBias(0.0d);
-		mcts.setMoveSelectionPolicy(FinalSelectionPolicy.robustChild);
 		int[] scores = new int[3];
 
 		for (int i = 0; i < 100; i++) {
@@ -29,7 +25,7 @@ class TTTMain {
 				if (humanPlayer[ttt.currentPlayer]) {
 					move = getHumanMove(ttt);
 				} else {
-					move = mcts.runMCTS_UCT(ttt, 1000000, 0L, false);
+					move = mcts.runMCTS_UCT(ttt, 1000000, 0L);
 				}
 				ttt.makeMove(move);
 			}

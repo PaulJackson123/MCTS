@@ -1,6 +1,5 @@
 package dylanean;
 
-import main.FinalSelectionPolicy;
 import main.MCTS;
 import main.Move;
 
@@ -21,9 +20,6 @@ class DCMain {
 		mcts.setHeuristicWeight(1.0);
 		mcts.setTimeDisplay(true);
 		Move move;
-		mcts.setOptimisticBias(0.0d);
-		mcts.setPessimisticBias(0.0d);
-		mcts.setMoveSelectionPolicy(FinalSelectionPolicy.robustChild);
 		int[] scores = new int[3];
 
 		DylaneanChess dc = new DylaneanChess();
@@ -32,7 +28,7 @@ class DCMain {
 				move = getHumanMove(dc);
 			} else {
 				dc.bPrint();
-				move = mcts.runMCTS_UCT(dc, RUNS, MAX_TIME, false);
+				move = mcts.runMCTS_UCT(dc, RUNS, MAX_TIME);
 			}
 			dc.makeMove(move);
 		}

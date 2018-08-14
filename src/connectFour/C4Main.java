@@ -20,8 +20,6 @@ class C4Main {
 	private static void run(int games, int it, double exp, boolean bounds, double pess, double opti) {
 		MCTS player = new MCTS();
 		player.setExplorationConstant(exp);
-		player.setOptimisticBias(opti);
-		player.setPessimisticBias(pess);
 		player.setTimeDisplay(true);
 
 		scorePlayer0 = 0;
@@ -40,7 +38,7 @@ class C4Main {
 				//cf.print();
 
 				if (gameInstance.currentPlayer != activePlayerID || !playerControl) {
-					Move m = player.runMCTS_UCT(gameInstance, it, 0L, bounds);
+					Move m = player.runMCTS_UCT(gameInstance, it, 0L);
 					gameInstance.makeMove(m);
 				} else {
 					System.out.println("Enter a row: ");

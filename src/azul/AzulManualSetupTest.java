@@ -1,11 +1,10 @@
 package azul;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class AzulManualSetupTest {
 
-	public static final int BAG_SIZE = 7 * 4;
+	private static final int BAG_SIZE = 7 * 4;
 
 	public static void main(String[] args) {
 		Azul azul = new Azul(3, false);

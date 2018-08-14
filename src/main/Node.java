@@ -7,25 +7,19 @@ import java.util.List;
 
 public class Node implements Comparable<Node> {
 	public double[] score;
-	public double games;
+	public double games; // TODO: Why not int?
 	public Move move;
 	public ArrayList<Node> children;
 	public Node parent;
 	public int player;
-	public double[] pess;
-	public double[] opti;
 	public boolean pruned;
 	public double[] endScore = null;
 	/**
 	 * This creates the root node
 	 */
-	Node(Board b) {
+	public Node(Board b) {
 		player = b.getCurrentPlayer();
 		score = new double[b.getQuantityOfPlayers()];
-		pess = new double[b.getQuantityOfPlayers()];
-		opti = new double[b.getQuantityOfPlayers()];
-		for (int i = 0; i < b.getQuantityOfPlayers(); i++)
-			opti[i] = 1;
 	}
 
 	/**
@@ -39,10 +33,6 @@ public class Node implements Comparable<Node> {
 		tempBoard.makeMove(move);
 		player = tempBoard.getCurrentPlayer();
 		score = new double[b.getQuantityOfPlayers()];
-		pess = new double[b.getQuantityOfPlayers()];
-		opti = new double[b.getQuantityOfPlayers()];
-		for (int i = 0; i < b.getQuantityOfPlayers(); i++)
-			opti[i] = 1;
 	}
 
 	/**
@@ -130,86 +120,6 @@ public class Node implements Comparable<Node> {
 	}
 
 	/**
-	 * Set the bounds in the given node and propagate the values back up the
-	 * tree.
-	 */
-	void backPropagateBounds(double[] score) {
-		for (int i = 0; i < score.length; i++) {
-			opti[i] = score[i];
-			pess[i] = score[i];
-		}
-
-		if (parent != null)
-			parent.backPropagateBoundsHelper();
-	}
-
-	private void backPropagateBoundsHelper() {
-		for (int i = 0; i < opti.length; i++) {
-			if (player != -1) {
-				if (i == player) {
-					opti[i] = Integer.MIN_VALUE;
-					pess[i] = Integer.MIN_VALUE;
-				} else {
-					opti[i] = Integer.MAX_VALUE;
-					pess[i] = Integer.MAX_VALUE;
-				}
-			} else {
-				// This is a random/environment node
-				opti[i] = Integer.MIN_VALUE;
-				pess[i] = Integer.MAX_VALUE;
-			}
-		}
-
-		for (int i = 0; i < opti.length; i++) {
-			for (Node c : children) {
-				if (player != -1) {
-					if (i == player) {
-						if (opti[i] < c.opti[i])
-							opti[i] = c.opti[i];
-						if (pess[i] < c.pess[i])
-							pess[i] = c.pess[i];
-					} else {
-						if (opti[i] > c.opti[i])
-							opti[i] = c.opti[i];
-						if (pess[i] > c.pess[i])
-							pess[i] = c.pess[i];
-					}
-				} else {
-					// This is a random/environment node
-					if (opti[i] < c.opti[i])
-						opti[i] = c.opti[i];
-					if (pess[i] > c.pess[i])
-						pess[i] = c.pess[i];
-				}
-			}
-		}
-
-		// This compares against a dummy node with bounds 1 0
-		// if not all children have been explored
-		if (false) {
-			for (int i = 0; i < opti.length; i++) {
-				if (i == player) {
-					opti[i] = 1;
-				} else {
-					pess[i] = 0;
-				}
-			}
-		}
-
-		pruneBranches();
-		if (parent != null)
-			parent.backPropagateBoundsHelper();
-	}
-
-	private void pruneBranches() {
-		for (Node s : children) {
-			if (pess[player] >= s.opti[player]) {
-				s.pruned = true;
-			}
-		}
-	}
-
-	/**
 	 * Select a child node at random and return it.
 	 */
 	int randomSelect(Board board) {
@@ -261,4 +171,13 @@ public class Node implements Comparable<Node> {
 		return result;
 	}
 
+	public Node makeRootNode(Move move) {
+		for (Node n : children) {
+			if (move.equals(n.move)) {
+				n.parent = null;
+				return n;
+			}
+		}
+		return null;
+	}
 }

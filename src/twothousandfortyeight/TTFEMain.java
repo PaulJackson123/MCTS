@@ -27,7 +27,6 @@ class TTFEMain {
 	private static void runGame(int games, double constant, int iterations, boolean print, String filename, String lprefix) {
 		MCTS mcts = new MCTS();
 		mcts.setExplorationConstant(constant);
-		mcts.enableRootParallelisation(4);
 		mcts.setTimeDisplay(true);
 		Move move;
 		Random random = new Random();
@@ -58,7 +57,7 @@ class TTFEMain {
 			while (!b.gameOver()) {
 				roundcount++;
 				if (b.currentPlayer == 0) {
-					move = mcts.runMCTS_UCT(b, iterations, 0L, false);
+					move = mcts.runMCTS_UCT(b, iterations, 0L);
 					b.makeMove(move);
 
 					if (print) {

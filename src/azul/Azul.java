@@ -705,7 +705,7 @@ class Azul implements Board {
 	}
 
 	private Double calculateHeuristic(AzulPlayerMove move) {
-		Azul b = duplicate();
+		Azul b = duplicate(); // TODO: Reduce value if there are multiple factories with this combination of tiles
 		int base = b.points[currentPlayer] +
 				b.getRoundScore(currentPlayer, false) +
 				b.getBonuses(b.walls[currentPlayer]);
