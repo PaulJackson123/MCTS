@@ -2,6 +2,7 @@ package ticTacToe;
 
 import main.MCTS;
 import main.Move;
+import main.Node;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,13 +26,15 @@ class TTTMain {
 				if (humanPlayer[ttt.currentPlayer]) {
 					move = getHumanMove(ttt);
 				} else {
-					move = mcts.runMCTS_UCT(ttt, 1000000, 0L);
+					Node rootNode = new Node(ttt);
+					move = mcts.runMctsAndGetBestNode(ttt, 1000000, 0L, rootNode);
+					System.out.println("" + rootNode.games + " trials run.");
 				}
 				ttt.makeMove(move);
 			}
 
 			System.out.println("---");
-			ttt.bPrint();
+			System.out.println(ttt);
 
 			double[] scr = ttt.getScore();
 			if (scr[0] > 0.9) {

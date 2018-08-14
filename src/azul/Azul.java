@@ -677,7 +677,12 @@ class Azul implements Board {
 				}
 			}
 		}
-		return turn >= MAX_TURNS;
+		if (turn >= MAX_TURNS) {
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 
 	int getFactoryCount() {

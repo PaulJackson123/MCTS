@@ -102,6 +102,7 @@ public class Node implements Comparable<Node> {
 		for (Node child : children) {
 			if (child != node) {
 				child.pruned = true;
+				child.children = null;
 			}
 		}
 		assert node.endScore != null; // TODO
