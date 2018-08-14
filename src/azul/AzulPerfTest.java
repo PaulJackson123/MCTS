@@ -34,7 +34,7 @@ public class AzulPerfTest {
 		byte[] colors = new byte[] {5, 5, 3, 1, 5, 5, 3, 1, 5, 1, 4, 2, 3, 3, 1, 2, 2, 2, 5, 5, 5, 5, 4, 1, 1, 1, 2, 2};
 		byte[] selections = getSelections(azul, colors);
 		azul.makeMove(new AzulSetupMove(0, selections));
-		MCTS mcts = AzulMain.newMcts();
+		MCTS mcts = AzulMain.newMcts(0.36);
 		runIteration(azul, mcts);
 		runIteration(azul, mcts);
 		runIteration(azul, mcts);

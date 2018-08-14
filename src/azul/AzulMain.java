@@ -29,21 +29,22 @@ class AzulMain {
 		Map<Integer, MCTS> mctses = new HashMap<>();
 		for (int i = 0; i < humanPlayer.length; i++) {
 			if (!humanPlayer[i]) {
-				mctses.put(i, newMcts());
+				mctses.put(i, newMcts(0.36));
 			}
 		}
 		int[] scores = new int[3];
 
 		Azul azul = new Azul(humanPlayer.length, false);
-		MCTS mcts = newMcts();
-		MCTS bg = newMcts();
+		// Do more exploration in background to increase chance that time is spent on move that player chooses
+		MCTS bg = newMcts(0.71);
+		MCTS fg = newMcts(0.36);
 		Node bgNode = null;
 		while (!azul.gameOver()) {
 			Future<Node> future = null;
 			Move move;
 			if (azul.getCurrentPlayer() < 0) {
 				//noinspection ConstantConditions
-				move = MANUALLY_SET_FACTORIES ? setFactories(azul) : mcts.selectRandom(azul);
+				move = MANUALLY_SET_FACTORIES ? setFactories(azul) : fg.selectRandom(azul);
 			} else {
 				if (humanPlayer[azul.getCurrentPlayer()]) {
 					// Think while human is making move
@@ -55,7 +56,7 @@ class AzulMain {
 				else {
 					azul.bPrint();
 					Node rootNode = bgNode == null ? new Node(azul) : bgNode;
-					move = mcts.runMctsAndGetBestNode(azul, MAX_RUNS, MAX_TIME, rootNode);
+					move = fg.runMctsAndGetBestNode(azul, MAX_RUNS, MAX_TIME, rootNode);
 					System.out.println("" + rootNode.games + " trials run.");
 				}
 			}
@@ -95,9 +96,9 @@ class AzulMain {
 		System.out.println(Arrays.toString(scores));
 	}
 
-	static MCTS newMcts() {
+	static MCTS newMcts(double explorationConstant) {
 		MCTS mcts = new MCTS();
-		mcts.setExplorationConstant(0.36);
+		mcts.setExplorationConstant(explorationConstant);
 		mcts.setHeuristicWeight(1.0);
 		mcts.setTimeDisplay(true);
 		mcts.setHeuristicFunction(new AzulHeuristicFunction(0.36));
