@@ -13,7 +13,7 @@ class Azul implements Board {
 	private static final double[] WEIGHTS = new double[EXPANSIONS_PER_NODE];
 	static final Random RANDOM = new Random();
 	private static final int MAX_TURNS = 1000;
-	private static final int MAX_TURN_SCORE = 5 + 5 + 2 + 7 + 10;
+	private static final int MAX_TURN_SCORE = 5 + 5 + 2 + 7 + 10; // 29
 	static int[] factoriesPerPlayer = {0, 0, 5, 7, 9};
 
 	static {
@@ -698,22 +698,9 @@ class Azul implements Board {
 	}
 
 	/**
-	 * Scores board. Finds lead. Returns 1.0 for infinite lead, -1.0 for infinite trail, 0.0 for tied for lead.
+	 * Scores board. Finds lead. Returns -1 for terrible move, 0 for neutral move, 1 for best possible move.
 	 */
 	double getHeuristic(AzulPlayerMove move) {
-		Double h = null;
-		if (heuristics == null) {
-			heuristics = new HashMap<>();
-		} else {
-			h = heuristics.get(move);
-		}
-		if (h == null) {
-			heuristics.put(move, h = calculateHeuristic(move));
-		}
-		return h;
-	}
-
-	private Double calculateHeuristic(AzulPlayerMove move) {
 		Azul b = duplicate(); // TODO: Reduce value if there are multiple factories with this combination of tiles
 		int base = b.points[currentPlayer] +
 				b.getRoundScore(currentPlayer, false) +
@@ -723,6 +710,14 @@ class Azul implements Board {
 				(b.isEndOfRound() ? 0 : b.getRoundScore(currentPlayer, false)) +
 				(b.isEndOfGame() ? 0 : b.getBonuses(walls[currentPlayer]));
 		int delta = score - base;
-		return ((double) delta) / MAX_TURN_SCORE;
+		// Worst move can be very negative. Clipping at 0.
+		double unclipped = delta / MAX_TURN_SCORE;
+		if (unclipped < 0.0d) {
+			return 0.0d;
+		}
+		else {
+			return unclipped;
+		}
 	}
+
 }

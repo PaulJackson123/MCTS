@@ -17,7 +17,6 @@ class DCMain {
 	public static void main(String[] args) {
 		MCTS mcts = new MCTS();
 		mcts.setExplorationConstant(0.36);
-		mcts.setHeuristicWeight(1.0);
 		mcts.setTimeDisplay(true);
 		Move move;
 		int[] scores = new int[3];

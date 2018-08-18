@@ -2,9 +2,7 @@ package main;
 
 import main.support.HeuristicFunction;
 
-import javax.management.Notification;
 import javax.management.NotificationEmitter;
-import javax.management.NotificationListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -16,9 +14,9 @@ public class MCTS {
 	private static final Comparator<Node> NODE_PRINT_COMPARATOR = (o1, o2) -> o1.games == o2.games
 			? Double.compare(o1.score[o1.parent.player], o2.score[o2.parent.player])
 			: Double.compare(o1.games, o2.games);
+	public static final int GAMES_SIMULATED_BY_HEURISTIC = 30;
 	private final Random random;
 	private double explorationConstant = Math.sqrt(2.0);
-	private double heuristicWeight = 1.0;
 	private boolean trackTime; // display thinking time used
 	private HeuristicFunction heuristic;
 	private PrintWriter writer;
@@ -197,6 +195,9 @@ public class MCTS {
 			atLeaf = node.children == null;
 			if (atLeaf) {
 				node.expandNode(b);
+				if (heuristic != null) {
+					applyHeuristic(b, node);
+				}
 			}
 
 			if (node.player >= 0) { // this is a regular node
@@ -226,6 +227,27 @@ public class MCTS {
 		}
 
 		return new BoardNodePair(b, node);
+	}
+
+	private void applyHeuristic(Board b, Node node) {
+		int currentPlayer = b.getCurrentPlayer();
+		if (currentPlayer < 0) {
+			return;
+		}
+		int players = b.getQuantityOfPlayers();
+		double meanWinRate = 1.0d / players;
+		double meanLossRate = 1.0d - meanWinRate;
+		for (Node child : node.children) {
+			double h = heuristic.h(b, child.move);
+			double boost = h > 0
+					? (meanWinRate + h * meanLossRate) * GAMES_SIMULATED_BY_HEURISTIC
+					: (meanWinRate + h * meanWinRate) * GAMES_SIMULATED_BY_HEURISTIC;
+			double remainder = ((double) GAMES_SIMULATED_BY_HEURISTIC - boost) / (players - 1);
+			for (int i = 0; i < child.score.length; i++) {
+				child.score[i] = i == currentPlayer ? boost : remainder;
+				child.games = GAMES_SIMULATED_BY_HEURISTIC;
+			}
+		}
 	}
 
 	/**
@@ -329,9 +351,6 @@ public class MCTS {
 //						bestNodes.clear(); // This is unnecessary given clear below
 					}
 					double tempBest = s.upperConfidenceBound(explorationConstant);
-					if (heuristic != null) {
-						tempBest += heuristic.h(b, s.move) * heuristicWeight;
-					}
 
 					if (tempBest > bestValue) {
 						// If we found a better node
@@ -356,10 +375,6 @@ public class MCTS {
 	 */
 	public void setExplorationConstant(double exp) {
 		explorationConstant = exp;
-	}
-
-	public void setHeuristicWeight(double heuristicWeight) {
-		this.heuristicWeight = heuristicWeight;
 	}
 
 	public void setHeuristicFunction(HeuristicFunction h) {

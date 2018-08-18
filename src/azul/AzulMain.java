@@ -9,9 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,85 +24,90 @@ class AzulMain {
 	private static ExecutorService executorService = Executors.newFixedThreadPool(1);
 
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
-		Map<Integer, MCTS> mctses = new HashMap<>();
-		for (int i = 0; i < humanPlayer.length; i++) {
-			if (!humanPlayer[i]) {
-				mctses.put(i, newMcts(0.36));
-			}
-		}
 		int[] scores = new int[3];
-
 		Azul azul = new Azul(humanPlayer.length, false);
 		// TODO: Broader exploration should apply to root node only?
 		// Do more exploration in background to increase chance that time is spent on move that player chooses
 		MCTS bg = newMcts(0.71);
 		MCTS fg = newMcts(0.36);
+		Node fgNode = null;
 		Node bgNode = null;
-		while (!azul.gameOver()) {
-			Future<Node> future = null;
-			Move move;
-			if (azul.getCurrentPlayer() < 0) {
-				//noinspection ConstantConditions
-				move = MANUALLY_SET_FACTORIES ? setFactories(azul) : fg.selectRandom(azul);
+		try {
+			while (!azul.gameOver()) {
+				Future<Node> future = null;
+				Move move;
+				if (azul.getCurrentPlayer() < 0) {
+					//noinspection ConstantConditions
+					move = MANUALLY_SET_FACTORIES ? setFactories(azul) : fg.selectRandom(azul);
+				} else {
+					if (humanPlayer[azul.getCurrentPlayer()]) {
+						// Think while human is making move
+						Azul bgBoard = azul.duplicate();
+						bg.setRequestCompletion(false);
+						bg.setLowMemory(false);
+						future = executorService.submit(() -> bg.runMCTS(bgBoard, 0, 0, new Node(bgBoard)));
+						move = getHumanMove(azul);
+					}
+					else {
+						azul.bPrint();
+						fgNode = bgNode == null ? new Node(azul) : bgNode;
+						fg.setLowMemory(false);
+						move = fg.runMctsAndGetBestNode(azul, MAX_RUNS, MAX_TIME, fgNode);
+						System.out.println("" + fgNode.games + " trials run.");
+					}
+				}
+				azul.makeMove(move);
+				if (future != null) {
+					bg.setRequestCompletion(true);
+					// Retain portion of tree that still applies
+					Node oldRootNode = null;
+					try { oldRootNode = future.get(); }
+					catch (Throwable ignore) {}
+					Node child = oldRootNode == null ? null : oldRootNode.makeRootNode(move);
+					if (child == null) {
+						bgNode = new Node(azul);
+					}
+					else {
+						System.out.println("Branch searched " + (child.games - MCTS.GAMES_SIMULATED_BY_HEURISTIC) +
+								" out of " + oldRootNode.games + " times.");
+						bgNode = child;
+					}
+				}
+				else {
+					bgNode = null;
+				}
+			}
+
+			System.out.println("---");
+			azul.bPrint();
+
+			double[] scr = azul.getScore();
+			if (scr[0] > 0.9) {
+				scores[0]++; // player 1
+			} else if (scr[1] > 0.9) {
+				scores[1]++; // player 2
 			} else {
-				if (humanPlayer[azul.getCurrentPlayer()]) {
-					// Think while human is making move
-					Azul bgBoard = azul.duplicate();
-					bg.setRequestCompletion(false);
-					bg.setLowMemory(false);
-					future = executorService.submit(() -> bg.runMCTS(bgBoard, 0, 0, new Node(bgBoard)));
-					move = getHumanMove(azul);
-				}
-				else {
-					azul.bPrint();
-					Node rootNode = bgNode == null ? new Node(azul) : bgNode;
-					fg.setLowMemory(false);
-					move = fg.runMctsAndGetBestNode(azul, MAX_RUNS, MAX_TIME, rootNode);
-					System.out.println("" + rootNode.games + " trials run.");
-				}
+				scores[2]++; // draw
 			}
-			azul.makeMove(move);
-			if (future != null) {
-				bg.setRequestCompletion(true);
-				// Retain portion of tree that still applies
-				Node oldRootNode = null;
-				try { oldRootNode = future.get(); }
-				catch (Throwable ignore) {}
-				Node child = oldRootNode == null ? null : oldRootNode.makeRootNode(move);
-				if (child == null) {
-					bgNode = new Node(azul);
-				}
-				else {
-					System.out.println("Branch searched " + child.games + " out of " + oldRootNode.games + " times.");
-					bgNode = child;
-				}
-			}
-			else {
-				bgNode = null;
-			}
+
+			System.out.println(Arrays.toString(azul.getPoints()));
+			System.out.println(Arrays.toString(scr));
+			System.out.println(Arrays.toString(scores));
 		}
-
-		System.out.println("---");
-		azul.bPrint();
-
-		double[] scr = azul.getScore();
-		if (scr[0] > 0.9) {
-			scores[0]++; // player 1
-		} else if (scr[1] > 0.9) {
-			scores[1]++; // player 2
-		} else {
-			scores[2]++; // draw
+		catch (RuntimeException | Error e) {
+			e.printStackTrace();
+			azul.bPrint();
+			System.out.println("Foreground node: ");
+			System.out.println(fgNode);
+			System.out.println("Background node: ");
+			System.out.println(bgNode);
+			throw e;
 		}
-
-		System.out.println(Arrays.toString(azul.getPoints()));
-		System.out.println(Arrays.toString(scr));
-		System.out.println(Arrays.toString(scores));
 	}
 
 	static MCTS newMcts(double explorationConstant) {
 		MCTS mcts = new MCTS();
 		mcts.setExplorationConstant(explorationConstant);
-		mcts.setHeuristicWeight(1.0);
 		mcts.setTimeDisplay(true);
 		mcts.setHeuristicFunction(new AzulHeuristicFunction(0.36));
 		return mcts;
