@@ -2,9 +2,13 @@ package main;
 
 import main.support.HeuristicFunction;
 
+import javax.management.Notification;
+import javax.management.NotificationEmitter;
+import javax.management.NotificationListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.lang.management.*;
 import java.util.*;
 
 // TODO: Detect end of game, change choice to best score differential
@@ -19,6 +23,7 @@ public class MCTS {
 	private HeuristicFunction heuristic;
 	private PrintWriter writer;
 	private volatile boolean requestCompletion = false;
+	private volatile boolean lowMemory = false;
 
 	public MCTS() {
 		random = new Random();
@@ -27,6 +32,30 @@ public class MCTS {
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException(e);
 		}
+
+		initLowMemoryDetection();
+	}
+
+	private void initLowMemoryDetection() {
+		// heuristic to find the tenured pool (largest heap) as seen on http://www.javaspecialists.eu/archive/Issue092.html
+		MemoryPoolMXBean tenuredGenPool = null;
+		for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+			if (pool.getType() == MemoryType.HEAP && pool.isUsageThresholdSupported()) {
+				tenuredGenPool = pool;
+			}
+		}
+		// we do something when we reached 90% of memory usage
+		tenuredGenPool.setCollectionUsageThreshold((int) Math.floor(tenuredGenPool.getUsage().getMax() * 0.50));
+
+		//set a listener
+		MemoryMXBean mbean = ManagementFactory.getMemoryMXBean();
+		NotificationEmitter emitter = (NotificationEmitter) mbean;
+		emitter.addNotificationListener((n, hb) -> {
+			if (n.getType().equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
+				// this is the signal => end the application early to avoid OOME
+				setLowMemory(true);
+			}
+		}, null, null);
 	}
 
 	public Move selectRandom(Board startingBoard) {
@@ -87,19 +116,26 @@ public class MCTS {
 	}
 
 	public Node runMCTS(Board startingBoard, int runs, long maxTime, Node rootNode) {
-		long startTime1 = System.currentTimeMillis();
-		// No need to make multiple runs for moves that will be selected randomly
-		int maxRuns = startingBoard.getCurrentPlayer() < 0 ? 1 : runs;
+		try {
+			long startTime1 = System.currentTimeMillis();
+			// No need to make multiple runs for moves that will be selected randomly
+			int maxRuns = startingBoard.getCurrentPlayer() < 0 ? 1 : runs;
 
-		int i = 1;
-		select(startingBoard.duplicate(), rootNode);
-		if (rootNode.children.size() > 1) {
-			while (shouldContinue(rootNode, maxRuns, maxTime, startTime1, i)) {
-				select(startingBoard.duplicate(), rootNode);
-				i++;
+			int i = 1;
+			select(startingBoard.duplicate(), rootNode);
+			// TODO: Do not skip this if this is bg thread
+			if (rootNode.children.size() > 1) {
+				while (shouldContinue(rootNode, maxRuns, maxTime, startTime1, i)) {
+					select(startingBoard.duplicate(), rootNode);
+					i++;
+				}
 			}
+			return rootNode;
 		}
-		return rootNode;
+		catch (Error e) {
+			System.out.println("Background process failed: " + e.getMessage());
+			throw e;
+		}
 	}
 
 	private boolean shouldContinue(Node rootNode, int maxRuns, long maxTime, long startTime, int runs) {
@@ -109,10 +145,20 @@ public class MCTS {
 		else if (maxRuns > 0 ) {
 			return runs < maxRuns;
 		}
-		else if (maxTime > 0) {
-			return System.currentTimeMillis() - startTime < maxTime;
+		else if (maxTime > 0 && getTimeSpent(startTime) > maxTime) {
+			return false;
 		}
-		else return !requestCompletion;
+		else if (lowMemory) {
+			System.out.println("Halting search after " + runs +
+					" runs and " + getTimeSpent(startTime) +
+					" ms to preserve free memory");
+			return false;
+		}
+		return !requestCompletion;
+	}
+
+	private long getTimeSpent(long startTime) {
+		return System.currentTimeMillis() - startTime;
 	}
 
 	private String getChildrenPrintString(ArrayList<Node> children) {
@@ -324,7 +370,11 @@ public class MCTS {
 		this.trackTime = displayTime;
 	}
 
-	public void setRequestCompletions(boolean value) {
+	public void setRequestCompletion(boolean value) {
 		this.requestCompletion = value;
+	}
+
+	public void setLowMemory(boolean value) {
+		this.lowMemory = value;
 	}
 }

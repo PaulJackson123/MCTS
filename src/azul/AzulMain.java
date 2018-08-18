@@ -35,6 +35,7 @@ class AzulMain {
 		int[] scores = new int[3];
 
 		Azul azul = new Azul(humanPlayer.length, false);
+		// TODO: Broader exploration should apply to root node only?
 		// Do more exploration in background to increase chance that time is spent on move that player chooses
 		MCTS bg = newMcts(0.71);
 		MCTS fg = newMcts(0.36);
@@ -49,23 +50,27 @@ class AzulMain {
 				if (humanPlayer[azul.getCurrentPlayer()]) {
 					// Think while human is making move
 					Azul bgBoard = azul.duplicate();
-					bg.setRequestCompletions(false);
+					bg.setRequestCompletion(false);
+					bg.setLowMemory(false);
 					future = executorService.submit(() -> bg.runMCTS(bgBoard, 0, 0, new Node(bgBoard)));
 					move = getHumanMove(azul);
 				}
 				else {
 					azul.bPrint();
 					Node rootNode = bgNode == null ? new Node(azul) : bgNode;
+					fg.setLowMemory(false);
 					move = fg.runMctsAndGetBestNode(azul, MAX_RUNS, MAX_TIME, rootNode);
 					System.out.println("" + rootNode.games + " trials run.");
 				}
 			}
 			azul.makeMove(move);
 			if (future != null) {
-				bg.setRequestCompletions(true);
+				bg.setRequestCompletion(true);
 				// Retain portion of tree that still applies
-				Node oldRootNode = future.get();
-				Node child = oldRootNode.makeRootNode(move);
+				Node oldRootNode = null;
+				try { oldRootNode = future.get(); }
+				catch (Throwable ignore) {}
+				Node child = oldRootNode == null ? null : oldRootNode.makeRootNode(move);
 				if (child == null) {
 					bgNode = new Node(azul);
 				}
