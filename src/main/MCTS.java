@@ -22,6 +22,7 @@ public class MCTS {
 	private PrintWriter writer;
 	private volatile boolean requestCompletion = false;
 	private volatile boolean lowMemory = false;
+	private volatile int runs;
 
 	public MCTS() {
 		random = new Random();
@@ -107,7 +108,7 @@ public class MCTS {
 
 		if (this.trackTime) {
 			System.out.println("Selected move: " + bestMoveFound);
-			System.out.println("Thinking time in milliseconds: " + (endTime - startTime));
+			System.out.println("" + this.runs + " runs in " + (endTime - startTime) + " ms.");
 		}
 
 		return bestMoveFound;
@@ -128,10 +129,11 @@ public class MCTS {
 					i++;
 				}
 			}
+			this.runs = i;
 			return rootNode;
 		}
 		catch (Error e) {
-			System.out.println("Background process failed: " + e.getMessage());
+			System.out.println("Search process failed: " + e.getMessage());
 			throw e;
 		}
 	}

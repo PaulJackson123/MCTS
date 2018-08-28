@@ -80,7 +80,7 @@ class DCMove implements Move {
 
 	@Override
 	public String toString() {
-		return "DCMove{" +
+		return "Move{" +
 				"piece=" + piece +
 				", fromRank=" + fromRank +
 				", fromFile=" + fromFile +

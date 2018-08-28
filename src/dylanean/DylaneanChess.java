@@ -213,6 +213,8 @@ public class DylaneanChess implements Board {
 			String message = isMoveLegal(piece, target);
 			if (message != null) {
 				bPrint();
+				System.out.println("Player 0 pieces: " + placedPieces[0]);
+				System.out.println("Player 1 pieces: " + placedPieces[1]);
 				System.out.println(move);
 				throw new IllegalArgumentException(message);
 			}

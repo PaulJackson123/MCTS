@@ -54,7 +54,7 @@ class DCSetupMove implements Move {
 
 	@Override
 	public String toString() {
-		return "AzulPlayerMove{" +
+		return "SetupMove{" +
 				"piece=" + piece +
 				", rank=" + rank +
 				", file=" + file +
