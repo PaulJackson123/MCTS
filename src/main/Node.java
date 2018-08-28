@@ -5,6 +5,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * This type of node does not store the board, so that makeMove() must be called to
+ * navigate the tree. An alternative node that remembers the board (at least for leaf
+ * nodes, which likely constitute a majority of the nodes) does not exist.
+ */
 public class Node implements Comparable<Node> {
 	public double[] score;
 	public double games; // double outperforms int slightly
@@ -14,6 +19,7 @@ public class Node implements Comparable<Node> {
 	public int player;
 	public boolean pruned;
 	public double[] endScore = null;
+
 	/**
 	 * This creates the root node
 	 */
@@ -114,7 +120,7 @@ public class Node implements Comparable<Node> {
 	 * Expand this node by populating its list of unvisited child nodes.
 	 */
 	void expandNode(Board currentBoard) {
-		List<Move> legalMoves = currentBoard.getMoves(CallLocation.treePolicy);
+		List<Move> legalMoves = currentBoard.getMoves();
 		children = new ArrayList<>();
 		for (Move legalMove : legalMoves) {
 			children.add(new Node(currentBoard, legalMove, this));

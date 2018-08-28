@@ -3,77 +3,89 @@ package dylanean;
 import main.Move;
 
 class DCMove implements Move {
-	/**
-	 * Source factory. 0 = center area, 1 - n = factory number
-	 */
-	private final int factory;
-	private final int color;
+	private final int piece;
+	private final int fromRank;
+	private final int fromFile;
+	private final int toRank;
+	private final int toFile;
 
-	/**
-	 * Target line. 0 = floor, 1 - 5 = line number
-	 */
-	private final int line;
-
-	/**
-	 * Number of tiles selected - to aid toString()
-	 */
-	private final int count;
-
-	// TODO: How do we deal with tile placement during endOfRound in variant play?
-
-	DCMove(int factory, int color, int line, int count) {
-		this.factory = factory;
-		this.color = color;
-		this.line = line;
-		this.count = count;
+	DCMove(int piece, int fromRank, int fromFile, int toRank, int toFile) {
+		this.piece = piece;
+		this.fromRank = fromRank;
+		this.fromFile = fromFile;
+		this.toRank = toRank;
+		this.toFile = toFile;
 	}
 
-	int getFactory() {
-		return factory;
+	public int getPiece() {
+		return piece;
 	}
 
-	int getColor() {
-		return color;
+	public int getFromRank() {
+		return fromRank;
 	}
 
-	int getLine() {
-		return line;
+	public int getFromFile() {
+		return fromFile;
 	}
 
-	int getCount() {
-		return count;
+	public int getToRank() {
+		return toRank;
+	}
+
+	public int getToFile() {
+		return toFile;
 	}
 
 	@Override
 	public int compareTo(final Move o) {
-		return 0;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
 
-		DCMove that = (DCMove) o;
+		DCMove dcMove = (DCMove) o;
 
-		return factory == that.factory && color == that.color && line == that.line;
+		if (piece != dcMove.piece) {
+			return false;
+		}
+		if (fromRank != dcMove.fromRank) {
+			return false;
+		}
+		if (fromFile != dcMove.fromFile) {
+			return false;
+		}
+		if (toRank != dcMove.toRank) {
+			return false;
+		}
+		return toFile == dcMove.toFile;
 	}
 
 	@Override
 	public int hashCode() {
-		int result = factory;
-		result = 31 * result + color;
-		result = 31 * result + line;
+		int result = piece;
+		result = 31 * result + fromRank;
+		result = 31 * result + fromFile;
+		result = 31 * result + toRank;
+		result = 31 * result + toFile;
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return "AzulPlayerMove{" +
-				"factory=" + factory +
-				", color=" + color +
-				", line=" + line +
-				", count=" + count +
+		return "DCMove{" +
+				"piece=" + piece +
+				", fromRank=" + fromRank +
+				", fromFile=" + fromFile +
+				", toRank=" + toRank +
+				", toFile=" + toFile +
 				'}';
 	}
 }

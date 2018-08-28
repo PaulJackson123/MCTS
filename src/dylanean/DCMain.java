@@ -52,8 +52,8 @@ class DCMain {
 		do {
 			dc.bPrint();
 			System.out.println("Player " + dc.getCurrentPlayer() + "'s turn.");
-			int piece = readInt("Enter piece (1-4): ");
-			int rank = readInt("Enter rank (0-11): ");
+			int piece = readInt("Enter piece (1=soldier, 2=archer, 3=knight, 4=king): ");
+			int rank = Character.toLowerCase(readChar("Enter rank (A-L): ")) - 'a';
 			int file = readInt("Enter file (0-5): ");
 			String error = dc.isSetupMoveLegal(piece, rank, file);
 			if (error == null) {
@@ -75,5 +75,22 @@ class DCMain {
 			}
 		}
 		return i;
+	}
+
+	private static char readChar(final String message) {
+		char c = 0;
+		while (c == 0) {
+			try {
+				System.out.print(message);
+				LineNumberReader reader = new LineNumberReader(new InputStreamReader(System.in));
+				String s = reader.readLine();
+				if (s == null || s.length() != 1) {
+					throw new IllegalArgumentException();
+				}
+				c = s.charAt(0);
+			} catch (NumberFormatException | IOException ignore) {
+			}
+		}
+		return c;
 	}
 }

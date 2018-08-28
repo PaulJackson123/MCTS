@@ -1,7 +1,6 @@
 package dylanean;
 
 import main.Board;
-import main.CallLocation;
 import main.Move;
 
 import java.util.*;
@@ -44,12 +43,15 @@ public class DylaneanChess implements Board {
 	// Each player initialized with a null array indicating that king must be placed on this turn
 	private int[][] unplacedPieces = new int[2][]; // [player][pieceType - 1] count of pieces yet to be placed - null means none placed
 	private Set<OpenSpot>[] openSpots = new Set[2]; // [player] 2-element immutable arrays (rank/file) of open spots
-	private Set<PlacedPiece>[] placedPieces = new Set[2]; // [player]
+	private Set<DCPiece>[] placedPieces = new Set[2]; // [player]
 	private boolean setupPhase = true;
 	private int currentPlayer = 0;
+	private int movesSinceCapture = 0;
 	private boolean draw;
 	private boolean gameOver;
 	private Map<Move, Double> heuristics;
+
+	static final int[] OTHER_PLAYER = new int[] {1, 0};
 
 	// Which source pieces can attack which target pieces. [source][target] returns true if legal
 	private static final boolean[][] LEGAL_MOVES_NO_LOCKING = new boolean[][] {
@@ -105,7 +107,7 @@ public class DylaneanChess implements Board {
 		int sign = player == 0 ? -1 : 1;
 		board[rank][file] = 4 * sign;
 		openSpots[player].remove(new OpenSpot(rank, file));
-		placedPieces[player].add(new PlacedPiece(4, rank, file));
+		placedPieces[player].add(DCPiece.createDCPiece(4, rank, file));
 	}
 
 	private DylaneanChess(DylaneanChess z) {
@@ -125,6 +127,29 @@ public class DylaneanChess implements Board {
 		draw = z.draw;
 		gameOver = z.gameOver;
 	}
+	// For testing
+	DylaneanChess(int[][] board, int currentPlayer) {
+		copy2d(board, this.board, 12, 6);
+		this.setupPhase = false;
+		placedPieces[0] = new HashSet<>();
+		placedPieces[1] = new HashSet<>();
+		for (int rank = 0; rank < 12; rank++) {
+			for (int file = 0; file < 6; file++) {
+				int pieceType = board[rank][file];
+				if (pieceType != 0) {
+					DCPiece piece = DCPiece.createDCPiece(Math.abs(pieceType), rank, file);
+					if (pieceType < 0) {
+						placedPieces[0].add(piece);
+					}
+					else {
+						placedPieces[1].add(piece);
+					}
+				}
+			}
+		}
+
+		this.currentPlayer = currentPlayer;
+	}
 
 	@Override
 	public DylaneanChess duplicate() {
@@ -132,30 +157,30 @@ public class DylaneanChess implements Board {
 	}
 
 	@Override
-	public List<Move> getMoves(final CallLocation location) {
+	public List<Move> getMoves() {
 		List<Move> moves = new ArrayList<>();
-		int pieces[] = unplacedPieces[currentPlayer];
-		if (pieces == null) {
-			// King placement is compulsory first move
-			if (currentPlayer == 0) {
-				moves.add(new DCSetupMove(4, 0, 2));
-			}
-			else {
-				moves.add(new DCSetupMove(4, 11, 3));
-			}
-		}
-		else {
+		if (setupPhase) {
+			int pieces[] = unplacedPieces[currentPlayer];
 			Set<OpenSpot> spots = openSpots[currentPlayer];
 			for (int p = 0; p < 3; p++) {
-				int piece = p + 1;
-				for (int i = 0, count = pieces[p]; i < count; i++) {
+				// Don't need duplicate moves
+				if (pieces[p] > 0) {
 					for (OpenSpot spot : spots) {
-						moves.add(new DCSetupMove(piece, spot.rank, spot.file));
+						moves.add(new DCSetupMove(p + 1, spot.rank, spot.file));
 					}
 				}
 			}
 		}
+		else {
+			for (DCPiece piece : placedPieces[currentPlayer]) {
+				moves.addAll(piece.getCandidateMoves(this, currentPlayer));
+			}
+		}
 		return moves;
+	}
+
+	Iterable<DCPiece> getPlacedPieces(int player) {
+		return placedPieces[player];
 	}
 
 	@Override
@@ -173,11 +198,84 @@ public class DylaneanChess implements Board {
 			board[rank][file] = piece * sign;
 			unplacedPieces[currentPlayer][piece - 1]--;
 			openSpots[currentPlayer].remove(new OpenSpot(rank, file));
-			placedPieces[currentPlayer].add(new PlacedPiece(piece, rank, file));
-			currentPlayer = (currentPlayer + 1) % 2;
+			placedPieces[currentPlayer].add(DCPiece.createDCPiece(piece, rank, file));
+			currentPlayer = OTHER_PLAYER[currentPlayer];
+			// This is testing whether the NEXT player has any setup moves to make
 			setupPhase = placedPieces[currentPlayer].size() < 19;
 		} else {
 			DCMove move = (DCMove) m;
+			int fromRank = move.getFromRank();
+			int fromFile = move.getFromFile();
+			int toRank = move.getToRank();
+			int toFile = move.getToFile();
+			int piece = board[fromRank][fromFile];
+			int target = board[toRank][toFile];
+			String message = isMoveLegal(piece, target);
+			if (message != null) {
+				bPrint();
+				System.out.println(move);
+				throw new IllegalArgumentException(message);
+			}
+
+			board[fromRank][fromFile] = 0;
+			board[toRank][toFile] = piece;
+			placedPieces[currentPlayer].remove(DCPiece.createDCPiece(piece, fromRank, fromFile));
+			placedPieces[currentPlayer].add(DCPiece.createDCPiece(piece, toRank, toFile));
+			if (target == 0) {
+				movesSinceCapture++;
+			} else {
+				boolean removed = placedPieces[OTHER_PLAYER[currentPlayer]].remove(DCPiece.createDCPiece(target, toRank, toFile));
+				assert removed;
+				movesSinceCapture = 0;
+			}
+			currentPlayer = OTHER_PLAYER[currentPlayer];
+			gameOver = true;
+			for (DCPiece placedPiece : placedPieces[currentPlayer]) {
+				if (placedPiece.hasAnyMoves(this, currentPlayer)) {
+					gameOver = false;
+					break;
+				}
+			}
+			if (gameOver) {
+				// Stalemate, unless player is in check
+				draw = !isPlayerInCheck(currentPlayer);
+			}
+			else if (movesSinceCapture == 50) {
+				gameOver = true;
+				draw = true;
+			}
+			if (gameOver) {
+				if (draw) {
+					scores[0] = 0.5d;
+					scores[1] = 0.5d;
+				}
+				else {
+					scores[currentPlayer] = 0.0d;
+					scores[OTHER_PLAYER[currentPlayer]] = 1.0d;
+				}
+			}
+		}
+	}
+
+	private boolean isPlayerInCheck(int player) {
+		int otherPlayer = OTHER_PLAYER[player];
+		for (DCPiece piece : placedPieces[otherPlayer]) {
+			if (piece.hasOpponentInCheck(this.board, otherPlayer)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private int getPieceOwner(int pieceType) {
+		if (pieceType == 0) {
+			return -1;
+		}
+		else if (pieceType < 0) {
+			return 0;
+		}
+		else {
+			return 1;
 		}
 	}
 
@@ -195,7 +293,14 @@ public class DylaneanChess implements Board {
 		return null;
 	}
 
-	String isMoveLegal(int piece, int fromRank, int fromFile, int toRank, int toFile) {
+	private String isMoveLegal(int fromPiece, int toPiece) {
+		int owner = getPieceOwner(toPiece);
+		if (currentPlayer == owner) {
+			return "Target piece is owned by current player";
+		}
+		if (!DylaneanChess.LEGAL_MOVES_NO_LOCKING[Math.abs(fromPiece)][Math.abs(toPiece)]) {
+			return toChars(fromPiece).toUpperCase() + " cannot attack " + toChars(toPiece).toUpperCase();
+		}
 		return null;
 	}
 
@@ -318,6 +423,10 @@ public class DylaneanChess implements Board {
 		return 0.0;
 	}
 
+	public int[][] getBoard() {
+		return board;
+	}
+
 	private static class OpenSpot {
 		private final int rank;
 		private final int file;
@@ -353,44 +462,4 @@ public class DylaneanChess implements Board {
 		}
 	}
 
-	private static class PlacedPiece {
-		private final int pieceType; // -4 through 4 excluding 0
-		private final int rank;
-		private final int file;
-
-		private PlacedPiece(int pieceType, int rank, int file) {
-			this.pieceType = pieceType;
-			this.rank = rank;
-			this.file = file;
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) {
-				return true;
-			}
-			if (o == null || getClass() != o.getClass()) {
-				return false;
-			}
-			PlacedPiece that = (PlacedPiece) o;
-			return pieceType == that.pieceType &&
-					rank == that.rank &&
-					file == that.file;
-		}
-
-		@Override
-		public int hashCode() {
-			int result = pieceType;
-			result = 31 * result + rank;
-			result = 31 * result + file;
-			return result;
-		}
-
-		@Override
-		public String toString() {
-			return "pieceType=" + pieceType +
-					", rank=" + rank +
-					", file=" + file;
-		}
-	}
 }

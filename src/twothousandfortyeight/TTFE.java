@@ -1,7 +1,6 @@
 package twothousandfortyeight;
 
 import main.Board;
-import main.CallLocation;
 import main.Move;
 
 import java.util.ArrayList;
@@ -40,7 +39,7 @@ public class TTFE implements Board {
 	}
 
 	@Override
-	public ArrayList<Move> getMoves(CallLocation location) {
+	public ArrayList<Move> getMoves() {
 		ArrayList<Move> out = new ArrayList<>();
 		if (currentPlayer == 0) {
 			// It's the player's turn

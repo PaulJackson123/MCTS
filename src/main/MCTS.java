@@ -293,9 +293,12 @@ public class MCTS {
 		Board brd = board.duplicate();
 		// Start playing random moves until the game is over
 		do { // TODO: Alpha-go uses policy net to choose weighted
-			moves = brd.getMoves(CallLocation.treePolicy);
+			moves = brd.getMoves();
 			if (brd.getCurrentPlayer() >= 0) {
 		        // make random selection normally
+				if (moves.size() == 0) {
+					throw new IllegalStateException("No legal moves for player " + brd.getCurrentPlayer());
+				}
 				brd.makeMove(moves.get(random.nextInt(moves.size())));
 		    }
 		    else {

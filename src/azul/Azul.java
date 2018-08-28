@@ -1,7 +1,6 @@
 package azul;
 
 import main.Board;
-import main.CallLocation;
 import main.Move;
 import main.Utils;
 
@@ -98,7 +97,7 @@ class Azul implements Board {
 	}
 
 	@Override // TODO: Cache this? At least for player moves
-	public List<Move> getMoves(CallLocation location) {
+	public List<Move> getMoves() {
 		List<Move> moves = new ArrayList<>();
 		if (currentPlayer == -1) {
 			if (!roundComplete) {

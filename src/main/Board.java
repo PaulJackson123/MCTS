@@ -18,7 +18,7 @@ public interface Board {
 	 * The location parameter indicates from where in the algorithm
 	 * the method was called. Can be either treePolicy or playout.
 	 */
-	List<Move> getMoves(CallLocation location);
+	List<Move> getMoves();
 
 	/**
 	 * Apply the move m to the current state of the board.

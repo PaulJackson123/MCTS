@@ -103,6 +103,9 @@ class AzulMain {
 			System.out.println(bgNode);
 			throw e;
 		}
+		finally {
+			executorService.shutdown();
+		}
 	}
 
 	static MCTS newMcts(double explorationConstant) {
