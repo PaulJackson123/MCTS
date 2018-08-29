@@ -49,7 +49,7 @@ class AzulPlayerMove implements Move {
 
 	@Override
 	public int compareTo(final Move o) {
-		return 0;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

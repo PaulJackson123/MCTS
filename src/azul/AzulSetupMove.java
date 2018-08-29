@@ -27,6 +27,6 @@ class AzulSetupMove implements Move {
 
 	@Override
 	public int compareTo(Move o) {
-		return 0;
+		throw new UnsupportedOperationException();
 	}
 }

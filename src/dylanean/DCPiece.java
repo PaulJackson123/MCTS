@@ -169,7 +169,6 @@ abstract class DCPiece {
 			Utils.copy2d(board, copy, 12, 6);
 			copy[rank][file] = 0;
 			copy[toRank][toFile] = player == 0 ? 0 - pieceType : pieceType;
-			// TODO: player could come from board
 			// Check to make sure player did not leave or put self in check
 			int opponent = DylaneanChess.OTHER_PLAYER[player];
 			Iterable<DCPiece> opponentPieces = chess.getPlacedPieces(opponent);

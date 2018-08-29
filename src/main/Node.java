@@ -79,10 +79,8 @@ public class Node implements Comparable<Node> {
 					bestChild = child;
 				}
 			}
-			// TODO: Can child be null here?
 			if (bestScore == 1.0 || allPlayedToEnd) {
 				pruneAllBut(bestChild);
-				// TODO: Should scores be adjusted the rest of the way up the tree?
 				for (int i = 0; i < score.length; i++) {
 					this.score[i] = score[i] * games;
 				}
@@ -112,7 +110,7 @@ public class Node implements Comparable<Node> {
 //				child.children = null;
 			}
 		}
-		assert node.endScore != null; // TODO
+		assert node.endScore != null;
 		endScore = node.endScore;
 	}
 

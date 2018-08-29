@@ -9,7 +9,6 @@ import java.io.PrintWriter;
 import java.lang.management.*;
 import java.util.*;
 
-// TODO: Detect end of game, change choice to best score differential
 public class MCTS {
 	private static final Comparator<Node> NODE_PRINT_COMPARATOR = (o1, o2) -> o1.games == o2.games
 			? Double.compare(o1.score[o1.parent.player], o2.score[o2.parent.player])
