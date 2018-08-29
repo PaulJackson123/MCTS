@@ -55,8 +55,8 @@ class DCSetupMove implements Move {
 	@Override
 	public String toString() {
 		return "SetupMove{" +
-				"piece=" + piece +
-				", rank=" + rank +
+				"piece=" + piece + "/" + DylaneanChess.toChars(piece) +
+				", rank=" + rank + "/" + (char) ('a' + rank) +
 				", file=" + file +
 				'}';
 	}

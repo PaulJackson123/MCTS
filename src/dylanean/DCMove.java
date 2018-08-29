@@ -3,37 +3,43 @@ package dylanean;
 import main.Move;
 
 class DCMove implements Move {
-	private final int piece;
+	private final int pieceType;
 	private final int fromRank;
 	private final int fromFile;
 	private final int toRank;
 	private final int toFile;
 
-	DCMove(int piece, int fromRank, int fromFile, int toRank, int toFile) {
-		this.piece = piece;
+	/**
+	 * Create a move from one location to another.
+	 *
+	 * @param pieceType The positive integer representing the piece type (1=Soldier, 2=Archer,
+	 *                  3=Knight, 4=King). For display only.
+	 * @param fromRank
+	 * @param fromFile
+	 * @param toRank
+	 * @param toFile
+	 */
+	DCMove(int pieceType, int fromRank, int fromFile, int toRank, int toFile) {
+		this.pieceType = pieceType;
 		this.fromRank = fromRank;
 		this.fromFile = fromFile;
 		this.toRank = toRank;
 		this.toFile = toFile;
 	}
 
-	public int getPiece() {
-		return piece;
-	}
-
-	public int getFromRank() {
+	int getFromRank() {
 		return fromRank;
 	}
 
-	public int getFromFile() {
+	int getFromFile() {
 		return fromFile;
 	}
 
-	public int getToRank() {
+	int getToRank() {
 		return toRank;
 	}
 
-	public int getToFile() {
+	int getToFile() {
 		return toFile;
 	}
 
@@ -53,7 +59,7 @@ class DCMove implements Move {
 
 		DCMove dcMove = (DCMove) o;
 
-		if (piece != dcMove.piece) {
+		if (pieceType != dcMove.pieceType) {
 			return false;
 		}
 		if (fromRank != dcMove.fromRank) {
@@ -70,7 +76,7 @@ class DCMove implements Move {
 
 	@Override
 	public int hashCode() {
-		int result = piece;
+		int result = pieceType;
 		result = 31 * result + fromRank;
 		result = 31 * result + fromFile;
 		result = 31 * result + toRank;
@@ -81,10 +87,10 @@ class DCMove implements Move {
 	@Override
 	public String toString() {
 		return "Move{" +
-				"piece=" + piece +
-				", fromRank=" + fromRank +
+				"pieceType=" + pieceType + "/" + DylaneanChess.toChars(pieceType) +
+				", fromRank=" + fromRank + "/" + (char) ('a' + fromRank) +
 				", fromFile=" + fromFile +
-				", toRank=" + toRank +
+				", toRank=" + toRank + "/" + (char) ('a' + toRank) +
 				", toFile=" + toFile +
 				'}';
 	}

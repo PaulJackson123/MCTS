@@ -49,7 +49,6 @@ public class DylaneanChess implements Board {
 	private int movesSinceCapture = 0;
 	private boolean draw;
 	private boolean gameOver;
-	private Map<Move, Double> heuristics;
 
 	static final int[] OTHER_PLAYER = new int[] {1, 0};
 
@@ -124,10 +123,12 @@ public class DylaneanChess implements Board {
 			placedPieces[i] = new HashSet<>(z.placedPieces[i]);
 		}
 		currentPlayer = z.currentPlayer;
-		draw = z.draw;
-		gameOver = z.gameOver;
+		movesSinceCapture = z.movesSinceCapture;
+//		draw = z.draw;
+//		gameOver = z.gameOver;
 	}
-	// For testing
+
+	// For testing mid-game positions
 	DylaneanChess(int[][] board, int currentPlayer) {
 		copy2d(board, this.board, 12, 6);
 		this.setupPhase = false;
@@ -173,7 +174,7 @@ public class DylaneanChess implements Board {
 		}
 		else {
 			for (DCPiece piece : placedPieces[currentPlayer]) {
-				moves.addAll(piece.getCandidateMoves(this, currentPlayer));
+				moves.addAll(piece.getMoves(this, currentPlayer));
 			}
 		}
 		return moves;
@@ -190,6 +191,7 @@ public class DylaneanChess implements Board {
 			int piece = setupMove.getPiece();
 			int rank = setupMove.getRank();
 			int file = setupMove.getFile();
+			// TODO: Remove legality checks
 			String message = isSetupMoveLegal(piece, rank, file);
 			if (message != null) {
 				throw new IllegalArgumentException(message);
@@ -269,11 +271,11 @@ public class DylaneanChess implements Board {
 		return false;
 	}
 
-	private int getPieceOwner(int pieceType) {
-		if (pieceType == 0) {
+	private int getPieceOwner(int piece) {
+		if (piece == 0) {
 			return -1;
 		}
-		else if (pieceType < 0) {
+		else if (piece < 0) {
 			return 0;
 		}
 		else {
@@ -295,6 +297,32 @@ public class DylaneanChess implements Board {
 		return null;
 	}
 
+	String isMoveLegal(int fromRank, int fromFile, int toRank, int toFile) {
+		if (setupPhase) {
+			return "Still in setup phase";
+		}
+		int piece = board[fromRank][fromFile];
+		int target = board[toRank][toFile];
+		if (piece == 0) {
+			return "Position " + toChars(fromRank, fromFile) + " is empty";
+		}
+		int owner = getPieceOwner(piece);
+		if (owner != currentPlayer) {
+			return "Piece is owned by player " + owner;
+		}
+		DCPiece placedPiece = DCPiece.createDCPiece(piece, fromRank, fromFile);
+		String moveLegal = isMoveLegal(piece, target);
+		if (moveLegal != null) {
+			return moveLegal;
+		}
+		Collection<DCMove> moves = placedPiece.getMoves(this, currentPlayer);
+		DCMove move = new DCMove(Math.abs(piece), fromRank, fromFile, toRank, toFile);
+		if (!moves.contains(move)) {
+			return "Not a legal move.";
+		}
+		return null;
+	}
+
 	private String isMoveLegal(int fromPiece, int toPiece) {
 		int owner = getPieceOwner(toPiece);
 		if (currentPlayer == owner) {
@@ -304,17 +332,6 @@ public class DylaneanChess implements Board {
 			return toChars(fromPiece).toUpperCase() + " cannot attack " + toChars(toPiece).toUpperCase();
 		}
 		return null;
-	}
-
-	private void endGame() {
-		// Award 1.0 points to winner or 0.5 for draw.
-		int winner = 0;
-		double award = draw ? 0.5 : 1.0;
-		for (int i = 0; i < 2; i++) {
-			scores[i] = i == winner ? award : 0.0;
-		}
-		draw = false;
-		gameOver = true;
 	}
 
 	@Override
@@ -345,22 +362,23 @@ public class DylaneanChess implements Board {
 	@Override
 	public void bPrint() {
 		System.out.println();
-		System.out.println("#==0==1==2==3==4==5==#");
+		System.out.println("#===0===1===2===3===4===5==#");
 		for (int r = 11; r >= 0; r--) {
 			System.out.print("" + (char) ('a' + r) +  " ");
 			for (int f = 0; f < 6; f++) {
 				int piece = board[r][f];
 				if (piece == 0) {
-					// Use ::: to represent dart squares on the board
-					System.out.print((r + f) % 2 == 0 ? ":::" : "   ");
+					// Use :::: to represent dark squares on the board
+					System.out.print((r + f) % 2 == 0 ? "::::" : "    ");
 				}
 				else {
-					System.out.print(toChars(piece) + " ");
+					char c = (r + f) % 2 == 0 ? ':' : ' ';
+					System.out.print("" + c + toChars(piece) + c);
 				}
 			}
 			System.out.println(" " + (char) ('a' + r));
 		}
-		System.out.println("#==0==1==2==3==4==5==#");
+		System.out.println("#===0===1===2===3===4===5==#");
 		if (setupPhase) {
 			for (int player = 0; player < 2; player++) {
 				System.out.print("Player " + player + ":");
@@ -372,7 +390,7 @@ public class DylaneanChess implements Board {
 		}
 	}
 
-	private static String toChars(int piece) {
+	static String toChars(int piece) {
 		String s;
 		switch (Math.abs(piece)) {
 			case 1:
@@ -394,39 +412,15 @@ public class DylaneanChess implements Board {
 	}
 
 	private static String toChars(int toRank, int toFile) {
-		return "" + (char) ('A' + toFile) + toRank;
-	}
-
-	private boolean isEndOfGame() {
-		// TODO:
-		return false;
-	}
-
-	/**
-	 * Scores board. Finds lead. Returns 1.0 for infinite lead, -1.0 for infinite trail, 0.0 for tied for lead.
-	 */
-	double getHeuristic(Move move, double expCoef) {
-		Double h = null;
-		if (heuristics == null) {
-			heuristics = new HashMap<>();
-		} else {
-			h = heuristics.get(move);
-		}
-		if (h == null) {
-			heuristics.put(move, h = calculateHeuristic(move, expCoef));
-		}
-		return h;
-	}
-
-	private Double calculateHeuristic(Move move, double expCoef) {
-		DylaneanChess b = new DylaneanChess(this);
-		b.makeMove(move);
-		// TODO: Count  and score pieces
-		return 0.0;
+		return "" + (char) ('A' + toRank) + toFile;
 	}
 
 	public int[][] getBoard() {
 		return board;
+	}
+
+	boolean isSetupPhase() {
+		return setupPhase;
 	}
 
 	private static class OpenSpot {
