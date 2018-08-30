@@ -212,7 +212,7 @@ public class DylaneanChess implements Board {
 			int toFile = move.getToFile();
 			int piece = board[fromRank][fromFile];
 			int target = board[toRank][toFile];
-			String message = isMoveLegal(piece, target);
+			String message = canAttackPiece(piece, target);
 			if (message != null) {
 				bPrint();
 				System.out.println("Player 0 pieces: " + placedPieces[0]);
@@ -311,19 +311,24 @@ public class DylaneanChess implements Board {
 			return "Piece is owned by player " + owner;
 		}
 		DCPiece placedPiece = DCPiece.createDCPiece(piece, fromRank, fromFile);
-		String moveLegal = isMoveLegal(piece, target);
+		String moveLegal = canAttackPiece(piece, target);
 		if (moveLegal != null) {
 			return moveLegal;
 		}
-		Collection<DCMove> moves = placedPiece.getMoves(this, currentPlayer);
-		DCMove move = new DCMove(Math.abs(piece), fromRank, fromFile, toRank, toFile);
-		if (!moves.contains(move)) {
+		if (isLegalMove(fromRank, fromFile, toRank, toFile, piece, placedPiece)) {
 			return "Not a legal move.";
 		}
 		return null;
 	}
 
-	private String isMoveLegal(int fromPiece, int toPiece) {
+	private boolean isLegalMove(int fromRank, int fromFile, int toRank, int toFile, int piece, DCPiece placedPiece) {
+		// This is only called to validate human moves so inefficiency is OK.
+		Collection<DCMove> moves = placedPiece.getMoves(this, currentPlayer);
+		DCMove move = new DCMove(Math.abs(piece), fromRank, fromFile, toRank, toFile);
+		return !moves.contains(move);
+	}
+
+	private String canAttackPiece(int fromPiece, int toPiece) {
 		int owner = getPieceOwner(toPiece);
 		if (currentPlayer == owner) {
 			return "Target piece is owned by current player";
@@ -388,6 +393,11 @@ public class DylaneanChess implements Board {
 				System.out.println();
 			}
 		}
+	}
+
+	@Override
+	public int getNextPlayer(Move move) {
+		return OTHER_PLAYER[currentPlayer];
 	}
 
 	static String toChars(int piece) {

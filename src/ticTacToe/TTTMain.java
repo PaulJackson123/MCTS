@@ -28,7 +28,6 @@ class TTTMain {
 				} else {
 					Node rootNode = new Node(ttt);
 					move = mcts.runMctsAndGetBestNode(ttt, 1000000, 0L, rootNode);
-					System.out.println("" + rootNode.games + " trials run.");
 				}
 				ttt.makeMove(move);
 			}

@@ -62,4 +62,18 @@ public interface Board {
 	double[] getMoveWeights();
 
 	void bPrint();
+
+	/**
+	 * Return the player that would play next if
+	 * the current player played the given move
+	 *
+	 * @param move A move by the current player. Games may ignore
+	 *             this if the order of play is pre-determined
+	 * @return The next player
+	 */
+	default int getNextPlayer(Move move) {
+		Board tempBoard = duplicate();
+		tempBoard.makeMove(move);
+		return tempBoard.getCurrentPlayer();
+	}
 }

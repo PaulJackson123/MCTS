@@ -564,6 +564,42 @@ class Azul implements Board {
 		}
 	}
 
+	@Override
+	public int getNextPlayer(Move move) {
+		if (move instanceof AzulSetupMove) {
+			return ((AzulSetupMove) move).getNextPlayer();
+		} else {
+			AzulPlayerMove playerMove = (AzulPlayerMove) move;
+			byte factory = playerMove.getFactory();
+			byte color = playerMove.getColor();
+			boolean centerTilesEmpty = centerTiles.isEmpty();
+			boolean factoriesEmpty = factories.isEmpty();
+			if (factory == 0) {
+				centerTilesEmpty = true;
+				Iterator<Byte> iterator = centerTiles.iterator();
+				while (centerTilesEmpty && iterator.hasNext()) {
+					if (iterator.next() != color) {
+						centerTilesEmpty = false;
+					}
+				}
+			} else {
+				factoriesEmpty = factories.size() < 2;
+				byte[] get = factories.get(factory - 1);
+				for (int i = 0; factoriesEmpty && i < get.length; i++) {
+					if (get[i] != color) {
+						factoriesEmpty = false;
+						break;
+					}
+				}
+			}
+			if (factoriesEmpty && centerTilesEmpty) {
+				return -1;
+			} else {
+				return (byte) ((currentPlayer + 1) % numPlayers);
+			}
+		}
+	}
+
 	private void printTiles(int i, byte[] tiles) {
 		System.out.print(i + ") ");
 		for (int tile : tiles) {

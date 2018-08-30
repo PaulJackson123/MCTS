@@ -34,10 +34,7 @@ public class Node implements Comparable<Node> {
 	private Node(Board b, Move move, Node parent) {
 		this.parent = parent;
 		this.move = move;
-		// TODO: It seems really inefficient to make a move only to find who plays next
-		Board tempBoard = b.duplicate();
-		tempBoard.makeMove(move);
-		player = tempBoard.getCurrentPlayer();
+		player = b.getNextPlayer(move);
 		score = new double[b.getQuantityOfPlayers()];
 	}
 

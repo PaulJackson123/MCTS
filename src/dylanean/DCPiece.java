@@ -1,7 +1,5 @@
 package dylanean;
 
-import main.Utils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -147,41 +145,41 @@ abstract class DCPiece {
 	}
 
 	private void addLegalMove(List<DCMove> moves, DylaneanChess chess, int toRank, int toFile, int canAttack, int player) {
-		DCMove move = getLegalMove(chess, toRank, toFile, canAttack, player);
-		if (move != null) {
-			moves.add(move);
+		if (isLegalMove(chess, toRank, toFile, canAttack, player)) {
+			moves.add(new DCMove(pieceType, rank, file, toRank, toFile));
 		}
 	}
 
 	private boolean isLegalMove(DylaneanChess chess, int toRank, int toFile, int canAttack, int player) {
-		return getLegalMove(chess, toRank, toFile, canAttack, player) != null;
-	}
-
-	private DCMove getLegalMove(DylaneanChess chess, int toRank, int toFile, int canAttack, int player) {
 		int[][] board = chess.getBoard();
 		int target = board[toRank][toFile];
 		if (target == 0 ||
 				canAttack == target || // Attacking complementary piece
 				(player == 0 ? target > 0 : target < 0 ) && canAttack == 0 || // King is attacking
 				(player == 0 ? target == 4 : target == -4)) { // Attacking the king
-			// TODO: Rather than create new copy each time, have caller pass a single copy and make temp changes and restore them before returning
-			int[][] copy = new int[12][6];
-			Utils.copy2d(board, copy, 12, 6);
-			copy[rank][file] = 0;
-			copy[toRank][toFile] = player == 0 ? 0 - pieceType : pieceType;
+			// Make temporary changes to board that's we'll restore before returning
+			int piece = player == 0 ? 0 - pieceType : pieceType;
+			board[rank][file] = 0;
+			board[toRank][toFile] = piece;
 			// Check to make sure player did not leave or put self in check
 			int opponent = DylaneanChess.OTHER_PLAYER[player];
 			Iterable<DCPiece> opponentPieces = chess.getPlacedPieces(opponent);
+			boolean inCheck = false;
 			for (DCPiece opponentPiece : opponentPieces) {
+				// We're not deleting the captured piece from this set, so filter it
 				if (opponentPiece.rank != toRank || opponentPiece.file != toFile) {
-					if (opponentPiece.hasOpponentInCheck(copy, opponent)) {
-						return null;
+					if (opponentPiece.hasOpponentInCheck(board, opponent)) {
+						inCheck = true;
+						break;
 					}
 				}
 			}
-			return new DCMove(pieceType, this.rank, this.file, toRank, toFile);
+			// Restore board
+			board[rank][file] = piece;
+			board[toRank][toFile] = target;
+			return !inCheck;
 		}
-		return null;
+		return false;
 	}
 
 	@Override

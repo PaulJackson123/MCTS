@@ -20,6 +20,7 @@ class AzulMain {
 	private static final int MAX_RUNS = 0;
 	private static final long MAX_TIME = 10_000L;
 	private static final boolean MANUALLY_SET_FACTORIES = false;
+	private static final boolean BG_SEARCH = true;
 	private static boolean[] humanPlayer = {true, false};
 	private static ExecutorService executorService = Executors.newFixedThreadPool(1);
 
@@ -43,9 +44,11 @@ class AzulMain {
 					if (humanPlayer[azul.getCurrentPlayer()]) {
 						// Think while human is making move
 						Azul bgBoard = azul.duplicate();
-						bg.setRequestCompletion(false);
-						bg.setLowMemory(false);
-						future = executorService.submit(() -> bg.runMCTS(bgBoard, 0, 0, new Node(bgBoard)));
+						if (BG_SEARCH) {
+							bg.setRequestCompletion(false);
+							bg.setLowMemory(false);
+							future = executorService.submit(() -> bg.runMCTS(bgBoard, 0, 0, new Node(bgBoard)));
+						}
 						move = getHumanMove(azul);
 					}
 					else {
@@ -53,7 +56,6 @@ class AzulMain {
 						fgNode = bgNode == null ? new Node(azul) : bgNode;
 						fg.setLowMemory(false);
 						move = fg.runMctsAndGetBestNode(azul, MAX_RUNS, MAX_TIME, fgNode);
-						System.out.println("" + fgNode.games + " trials run.");
 					}
 				}
 				azul.makeMove(move);
@@ -98,14 +100,22 @@ class AzulMain {
 			e.printStackTrace();
 			azul.bPrint();
 			System.out.println("Foreground node: ");
-			System.out.println(fgNode);
+			printNode(fgNode);
 			System.out.println("Background node: ");
-			System.out.println(bgNode);
+			printNode(bgNode);
 			throw e;
 		}
 		finally {
 			executorService.shutdown();
 		}
+	}
+
+	private static void printNode(Node node) {
+		System.out.println(node);
+		System.out.print(node.pruned ? "Pruned\n" : "");
+		System.out.println("Player " + node.player);
+		System.out.println("Children " + node.children);
+		System.out.println("Move" + node.move);
 	}
 
 	static MCTS newMcts(double explorationConstant) {
